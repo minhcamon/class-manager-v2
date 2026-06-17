@@ -19,11 +19,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.entity.Enrollment;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
@@ -168,13 +172,24 @@ public class AuthService {
     }
 
     private TokenPair generateTokenPair(User user) {
+        Integer classId = null;
+        if (user.getRole() == Role.STUDENT) {
+            Enrollment enrollment = enrollmentRepository.findByUserIdWithClass(user.getId()).orElse(null);
+            if (enrollment != null) {
+                classId = enrollment.getClassEntity().getId();
+            }
+        } else if (user.getRole() == Role.TEACHER) {
+             // In future, if teacher needs classId in JWT, handle it here.
+        }
+
         String accessToken = jwtUtil.generateAccessToken(
                 user.getId(),
                 user.getUsername(),
                 user.getRole(),
                 user.getSchool() != null ? user.getSchool().getName() : null,
                 user.getAvatarUrl(),
-                user.getGoogleEmail()
+                user.getGoogleEmail(),
+                classId
         );
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
@@ -186,6 +201,14 @@ public class AuthService {
     }
 
     private UserResponse mapToUserResponse(User user) {
+        Integer classId = null;
+        if (user.getRole() == Role.STUDENT) {
+            Enrollment enrollment = enrollmentRepository.findByUserIdWithClass(user.getId()).orElse(null);
+            if (enrollment != null) {
+                classId = enrollment.getClassEntity().getId();
+            }
+        }
+
         return UserResponse.builder()
                 .username(user.getUsername())
                 .googleEmail(user.getGoogleEmail())
@@ -195,6 +218,7 @@ public class AuthService {
                 .schoolName(user.getSchool() != null ? user.getSchool().getName() : null)
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
+                .classId(classId)
                 .build();
     }
 }

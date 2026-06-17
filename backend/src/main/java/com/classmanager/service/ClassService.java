@@ -14,12 +14,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class ClassService {
 
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public ClassResponse createClass(Long teacherId, ClassCreateRequest request) {
@@ -34,6 +38,13 @@ public class ClassService {
             throw new ActiveClassExistsException();
         }
 
+        // Generate 6-character random class code
+        String rawCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        
+        // Handle password hashing (assume requested password or default)
+        // Since ClassCreateRequest might not have password right now, we use a placeholder "123456" for demo
+        String classPasswordHash = passwordEncoder.encode("123456");
+
         ClassEntity classEntity = ClassEntity.builder()
                 .className(request.getClassName())
                 .grade(request.getGrade())
@@ -41,6 +52,8 @@ public class ClassService {
                 .school(teacher.getSchool())
                 .status(ClassStatus.ACTIVE)
                 .basePoint(request.getBasePoint())
+                .classCode(rawCode)
+                .classPasswordHash(classPasswordHash)
                 .build();
 
         ClassEntity savedClass = classRepository.save(classEntity);

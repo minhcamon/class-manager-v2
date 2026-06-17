@@ -25,6 +25,7 @@ export interface UserResponse {
   schoolName: string | null;
   avatarUrl: string | null;
   createdAt: string;
+  classId?: number | null;
 }
 
 const authService = {
@@ -93,7 +94,8 @@ const authService = {
       phoneNumber: u.phoneNumber,
       avatarUrl: u.avatarUrl,
       role: u.role,
-      schoolName: u.schoolName
+      schoolName: u.schoolName,
+      classId: u.classId
     };
   },
 

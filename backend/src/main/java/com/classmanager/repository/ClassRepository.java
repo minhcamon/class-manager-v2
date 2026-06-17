@@ -7,6 +7,7 @@ import java.util.Optional;
 
 public interface ClassRepository extends JpaRepository<ClassEntity, Integer> {
     boolean existsByTeacherIdAndStatus(Long teacherId, ClassStatus status);
-    Optional<ClassEntity> findByIdAndTeacherId(Integer id, Long teacherId);
     Optional<ClassEntity> findByTeacherIdAndStatus(Long teacherId, ClassStatus status);
+    Optional<ClassEntity> findByIdAndTeacherId(Integer id, Long teacherId);
+    Optional<ClassEntity> findByClassCodeAndStatus(String classCode, ClassStatus status);
 }

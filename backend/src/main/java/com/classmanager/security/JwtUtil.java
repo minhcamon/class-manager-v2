@@ -31,13 +31,14 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(Long userId, String username, Role role, String schoolName, String avatarUrl, String googleEmail) {
+    public String generateAccessToken(Long userId, String username, Role role, String schoolName, String avatarUrl, String googleEmail, Integer classId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("role", role != null ? role.name() : null);
         claims.put("schoolName", schoolName);
         claims.put("avatar", avatarUrl);
         claims.put("email", googleEmail);
+        claims.put("classId", classId);
 
         return Jwts.builder()
                 .setClaims(claims)

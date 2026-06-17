@@ -41,6 +41,12 @@ public class ClassEntity {
     @Builder.Default
     private Integer basePoint = 100;
 
+    @Column(name = "class_code", nullable = false, length = 20, unique = true)
+    private String classCode;
+
+    @Column(name = "class_password_hash", nullable = false, length = 100)
+    private String classPasswordHash;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

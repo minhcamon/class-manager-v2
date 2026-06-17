@@ -40,7 +40,7 @@ export default function CreateClassPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<ClassFormData>({
-    resolver: zodResolver(classSchema) as any,
+    resolver: zodResolver(classSchema),
     defaultValues: {
       basePoint: 100,
     },
