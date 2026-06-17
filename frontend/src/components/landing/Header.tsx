@@ -1,10 +1,7 @@
+import { Link } from 'react-router';
 import { Button } from '../ui/Button';
 
-interface HeaderProps {
-  onRegisterClick: () => void;
-}
-
-export default function Header({ onRegisterClick }: HeaderProps) {
+export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 h-[72px] bg-background/80 backdrop-blur-md border-b border-neutral-200 z-50 transition-colors duration-150">
       <div className="max-w-7xl mx-auto px-6 h-full flex justify-between items-center">
@@ -24,16 +21,17 @@ export default function Header({ onRegisterClick }: HeaderProps) {
         </nav>
 
         <div className="hidden lg:flex items-center gap-4">
-          <a 
-            href="#login" 
+          <Link 
+            to="/login" 
             className="text-neutral-600 no-underline font-semibold text-[0.95rem] hover:text-primary transition-colors duration-150 cursor-pointer"
-            onClick={(e) => { e.preventDefault(); onRegisterClick(); }}
           >
             Đăng nhập
-          </a>
-          <Button onClick={onRegisterClick} size="sm">
-            Đăng ký ngay
-          </Button>
+          </Link>
+          <Link to="/register">
+            <Button size="sm">
+              Đăng ký ngay
+            </Button>
+          </Link>
         </div>
       </div>
     </header>

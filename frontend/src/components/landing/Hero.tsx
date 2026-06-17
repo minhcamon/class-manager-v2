@@ -1,12 +1,9 @@
 import { CheckCircle2 } from 'lucide-react';
+import { Link } from 'react-router';
 import heroIllustration from '../../assets/hero_illustration.png';
 import { Button } from '../ui/Button';
 
-interface HeroProps {
-  onRegisterClick: () => void;
-}
-
-export default function Hero({ onRegisterClick }: HeroProps) {
+export default function Hero() {
   return (
     <section className="pt-[140px] pb-20 min-h-[calc(100vh-72px)] flex items-center" id="hero">
       <div className="max-w-7xl mx-auto px-6 w-full">
@@ -38,12 +35,11 @@ export default function Hero({ onRegisterClick }: HeroProps) {
             </ul>
 
             <div className="flex gap-4 flex-wrap mt-3">
-              <Button
-                onClick={onRegisterClick}
-                size="lg"
-              >
-                Bắt đầu trải nghiệm ngay
-              </Button>
+              <Link to="/register">
+                <Button size="lg">
+                  Bắt đầu trải nghiệm ngay
+                </Button>
+              </Link>
               <a
                 href="#preview"
                 className="inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-150 ease-in-out cursor-pointer select-none active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 px-6 py-3 text-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400"

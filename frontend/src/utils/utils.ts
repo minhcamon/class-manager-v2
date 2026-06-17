@@ -1,10 +1,10 @@
 export interface DecodedUser {
-  id: string;
   username: string;
   fullName: string;
-  email: string;
+  email: string | null;
   avatarUrl: string | null;
-  role: string;
+  role: string | null;
+  schoolName: string | null;
 }
 
 // Token Management
@@ -36,12 +36,12 @@ export const decodeToken = (token: string): DecodedUser | null => {
     const claims = JSON.parse(jsonPayload);
     
     return {
-      id: claims.userId || claims.id,
-      username: claims.sub,
-      fullName: claims.name || claims.fullName,
-      email: claims.email,
-      avatarUrl: claims.avatar || null,
-      role: claims.role,
+      username: claims.username,
+      fullName: claims.fullName || claims.name || "",
+      email: claims.email || claims.googleEmail || null,
+      avatarUrl: claims.avatar || claims.avatarUrl || null,
+      role: claims.role || null,
+      schoolName: claims.schoolName || null,
     };
   } catch (error) {
     console.error("decodeToken failed:", error);

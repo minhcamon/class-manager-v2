@@ -1,10 +1,7 @@
+import { Link } from 'react-router';
 import { Button } from '../ui/Button';
 
-interface CTAProps {
-  onRegisterClick: () => void;
-}
-
-export default function CTA({ onRegisterClick }: CTAProps) {
+export default function CTA() {
   return (
     <section className="py-24 bg-white border-b border-neutral-200" id="cta">
       <div className="max-w-7xl mx-auto px-6 w-full">
@@ -17,13 +14,14 @@ export default function CTA({ onRegisterClick }: CTAProps) {
           <p className="text-neutral-400 text-base md:text-lg max-w-2xl leading-relaxed z-10">
             Đơn giản hóa thủ tục hành chính, giải quyết triệt để tranh chấp thi đua tổ, và số hóa toàn bộ hồ sơ lớp học hoàn toàn miễn phí.
           </p>
-          <Button 
-            onClick={onRegisterClick}
-            size="lg"
-            className="bg-white text-neutral-900 hover:bg-neutral-100 shadow-md z-10 text-lg py-3.5 px-8"
-          >
-            Đăng ký sử dụng miễn phí
-          </Button>
+          <Link to="/register" className="z-10">
+            <Button 
+              size="lg"
+              className="bg-white text-neutral-900 hover:bg-neutral-100 shadow-md text-lg py-3.5 px-8"
+            >
+              Đăng ký sử dụng miễn phí
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

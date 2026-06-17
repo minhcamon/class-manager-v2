@@ -2,7 +2,8 @@ import axios from "axios";
 import { getTokens } from "@/utils/utils";
 
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL as string) || "http://localhost:8080/api"
+  baseURL: (import.meta.env.VITE_API_URL as string) || "/api/v1",
+  withCredentials: true
 });
 
 // Request Interceptor: Attach token automatically if available

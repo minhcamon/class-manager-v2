@@ -17,21 +17,23 @@ Ensure ClassManager Frontend is written in strict TypeScript, avoids using `any`
 
 **Standard Folder Structure:**
 New Frontend files must be organized in the designated directories under `frontend/src/`:
-- `components/`: Contains shared UI components (`common/`) or module-specific ones (e.g., `dashboard/`, `points/`).
-- `pages/`: Page components mapped directly from the router.
+- `components/`: Contains shared UI components (`common/`, `ui/`).
+- `modules/`: Contains independent modularized features (e.g., `auth/`, `dashboard/`). Each module contains `components/` (module-specific), `pages/` (completed pages), `hooks/` (module hooks), and an `index.ts` (the sole public API barrel export).
+- `views/`: The router endpoints (wrappers). They import and wrap pages from `modules/` (e.g., `views/auth/Login.tsx` wraps `LoginPage` from `modules/auth`).
 - `types/`: Where shared TypeScript Types/Interfaces for API objects are defined.
 - `services/`: Axios API services centralized.
 - `stores/`: Zustand stores for global state management.
-- `context/`: React Context for local or session states.
+- `contexts/`: React Context for local or session states.
 - `utils/`: Utility functions (`dateUtils`, `constants`).
 
 **Frontend Feature Development Flow:**
 When developing a new frontend feature, adhere to the following sequence:
 1. **Types**: Define API Response/Request interfaces in `src/types/`.
 2. **Service**: Create an API service utilizing the centralized `axiosInstance` in `src/services/`.
-3. **Zustand Store**: Create or update a Zustand store in `src/stores/` (e.g., `useAuthStore`, `useClassStore`) if global state sharing is required.
-4. **UI Components & Pages**: Build UI components in `src/components/` and compose them into pages in `src/pages/`. Adhere to the minimalist UI design guidelines in `minimalist-ui`.
-5. **Route Guard**: Configure Route guards using `ProtectedRoute` in `App.tsx` (if authentication or specific roles are required).
+3. **Zustand Store**: Create or update a Zustand store in `src/stores/` (e.g., `useAuthStore`) if global state sharing is required.
+4. **Module components & Pages**: Build components in `src/modules/<feature>/components/` and compose them into pages in `src/modules/<feature>/pages/`. Export pages through `src/modules/<feature>/index.ts`.
+5. **View Wrapper**: Create the route entry point view wrapper in `src/views/<feature>/` (e.g. `views/auth/Login.tsx` wrapping `LoginPage` from `modules/auth`).
+6. **Route Guard**: Configure Route guards using `ProtectedRoute` in `App.tsx` (if authentication or specific roles are required).
 
 ### 2. Type Management (TypeScript Strict)
 - DO NOT use `any` — all API data must have an `interface` or `type`
