@@ -5,10 +5,14 @@ export interface Class {
   className: string;
   grade: number;
   teacherId: number;
+  teacherName?: string;
   schoolId: number;
   schoolName?: string;
   status: ClassStatus;
   basePoint: number;
+  classCode?: string;
+  classPassword?: string;
+  studentCount?: number;
   createdAt: string;
   updatedAt: string;
 }

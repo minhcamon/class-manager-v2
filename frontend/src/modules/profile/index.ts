@@ -1,2 +1,2 @@
+export { default as MyProfilePage } from "./pages/MyProfilePage";
 export { default as StudentProfilePage } from "./pages/StudentProfilePage";
-export { default as StudentDossierView } from "./components/StudentDossierView";

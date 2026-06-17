@@ -18,6 +18,11 @@ const classService = {
     return response.data.data;
   },
 
+  getClassById: async (id: number): Promise<Class> => {
+    const response = await api.get<APIResponse<Class>>(`/classes/${id}`);
+    return response.data.data;
+  },
+
   getActiveClass: async (): Promise<Class | null> => {
     const response = await api.get<APIResponse<Class | null>>("/classes/active");
     return response.data.data;

@@ -28,12 +28,21 @@ public class ClassResponse {
     
     @Schema(description = "ID of the teacher managing this class", example = "42")
     private Long teacherId;
+
+    @Schema(description = "Full name of the teacher", example = "Nguyễn Văn A")
+    private String teacherName;
     
     @Schema(description = "ID of the school this class belongs to", example = "5")
     private Long schoolId;
     
     @Schema(description = "Name of the school", example = "Lê Hồng Phong High School")
     private String schoolName;
+
+    @Schema(description = "Unique code to join the class", example = "CLASS-123456")
+    private String classCode;
+
+    @Schema(description = "Number of students enrolled in this class", example = "42")
+    private Long studentCount;
     
     @Schema(description = "Timestamp when the class was created")
     private LocalDateTime createdAt;

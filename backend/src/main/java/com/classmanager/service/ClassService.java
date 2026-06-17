@@ -10,6 +10,8 @@ import com.classmanager.exception.ActiveClassExistsException;
 import com.classmanager.exception.ClassNotFoundException;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.UserRepository;
+import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.enums.EnrollmentStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class ClassService {
 
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -85,6 +88,8 @@ public class ClassService {
     }
 
     private ClassResponse mapToResponse(ClassEntity entity) {
+        long studentCount = enrollmentRepository.countByClassEntityIdAndStatus(entity.getId(), EnrollmentStatus.ACTIVE);
+
         return ClassResponse.builder()
                 .id(entity.getId())
                 .className(entity.getClassName())
@@ -92,8 +97,11 @@ public class ClassService {
                 .status(entity.getStatus())
                 .basePoint(entity.getBasePoint())
                 .teacherId(entity.getTeacher().getId())
+                .teacherName(entity.getTeacher().getFullName())
                 .schoolId(entity.getSchool().getId())
                 .schoolName(entity.getSchool().getName())
+                .classCode(entity.getClassCode())
+                .studentCount(studentCount)
                 .createdAt(entity.getCreatedAt())
                 .build();
     }

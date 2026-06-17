@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Home from "./views/Home";
 import Error from "./views/Error";
@@ -6,11 +6,14 @@ import Login from "./views/auth/Login";
 import Register from "./views/auth/Register";
 import SelectRole from "./views/onboarding/SelectRole";
 import CreateSchool from "./views/onboarding/CreateSchool";
-import CreateClass from "./views/onboarding/CreateClass";
+import CreateClassView from "./views/onboarding/CreateClass";
 import StudentOnboarding from "./views/onboarding/StudentOnboarding";
-import Dashboard from "./views/Dashboard";
-import FormManagement from "./views/form/FormManagement";
-import StudentProfile from "./views/profile/StudentProfile";
+import { TeacherDashboard, StudentDashboard } from "./modules/dashboard";
+import { TeacherClassOverview, TeacherClassManagement, TeacherClassConfiguration, StudentClassOverview } from "./modules/class";
+import { ProfileTemplateBuilder } from "./modules/form";
+import { MyProfilePage } from "./modules/profile";
+import TeacherLayout from "./components/common/TeacherLayout";
+import StudentLayout from "./components/common/StudentLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { Toaster } from "sonner";
 
@@ -44,16 +47,26 @@ function App() {
             <Route path="/dashboard" element={<DashboardRedirect />} />
           </Route>
 
-          {/* Onboarded Protected Routes */}
+          {/* Teacher Routes */}
           <Route element={<ProtectedRoute allowedRoles={["TEACHER"]} />}>
-            <Route path="/teacher/dashboard" element={<Dashboard />} />
-            <Route path="/class/create" element={<CreateClass />} />
-            <Route path="/forms" element={<FormManagement />} />
+            <Route element={<TeacherLayout><Outlet /></TeacherLayout>}>
+              <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+              <Route path="/teacher/classes" element={<div>Danh sách lớp học (Coming Soon)</div>} />
+              <Route path="/teacher/classes/create" element={<CreateClassView />} />
+              <Route path="/teacher/classes/:classId" element={<TeacherClassOverview />} />
+              <Route path="/teacher/classes/:classId/management" element={<TeacherClassManagement />} />
+              <Route path="/teacher/classes/:classId/profile-template" element={<ProfileTemplateBuilder />} />
+              <Route path="/teacher/classes/:classId/configuration" element={<TeacherClassConfiguration />} />
+            </Route>
           </Route>
 
+          {/* Student Routes */}
           <Route element={<ProtectedRoute allowedRoles={["STUDENT"]} />}>
-            <Route path="/student/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<StudentProfile />} />
+            <Route element={<StudentLayout><Outlet /></StudentLayout>}>
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/class/:classId" element={<StudentClassOverview />} />
+              <Route path="/student/class/:classId/profile" element={<MyProfilePage />} />
+            </Route>
           </Route>
 
           {/* Catch-all 404 Route */}
