@@ -1,3 +1,5 @@
+import { GraduationCap, User, School } from "lucide-react";
+
 export default function WhoIsItFor() {
   return (
     <section className="py-24 bg-background border-b border-neutral-200" id="who-is-it-for">
@@ -13,10 +15,7 @@ export default function WhoIsItFor() {
           {/* Card 1: Giáo viên chủ nhiệm */}
           <div className="bg-white border border-neutral-200 rounded-xl p-8 transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md hover:border-primary-border flex flex-col gap-4">
             <div className="w-14 h-14 rounded-lg bg-primary-light text-primary flex items-center justify-center">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-4-9 4 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-              </svg>
+              <GraduationCap />
             </div>
             <h3 className="text-xl font-bold text-neutral-900">Giáo Viên Chủ Nhiệm</h3>
             <p className="text-[0.95rem] text-neutral-600 leading-relaxed">
@@ -41,9 +40,7 @@ export default function WhoIsItFor() {
           {/* Card 2: Tổ trưởng & Học sinh */}
           <div className="bg-white border border-neutral-200 rounded-xl p-8 transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md hover:border-primary-border flex flex-col gap-4">
             <div className="w-14 h-14 rounded-lg bg-primary-light text-primary flex items-center justify-center">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 025.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+              <User />
             </div>
             <h3 className="text-xl font-bold text-neutral-900">Tổ Trưởng & Học Sinh</h3>
             <p className="text-[0.95rem] text-neutral-600 leading-relaxed">
@@ -68,9 +65,7 @@ export default function WhoIsItFor() {
           {/* Card 3: Ban giám hiệu */}
           <div className="bg-white border border-neutral-200 rounded-xl p-8 transition-all duration-300 hover:translate-y-[-4px] hover:shadow-md hover:border-primary-border flex flex-col gap-4">
             <div className="w-14 h-14 rounded-lg bg-primary-light text-primary flex items-center justify-center">
-              <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
+              <School />
             </div>
             <h3 className="text-xl font-bold text-neutral-900">Ban Giám Hiệu</h3>
             <p className="text-[0.95rem] text-neutral-600 leading-relaxed">

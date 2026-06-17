@@ -1,3 +1,5 @@
+import { AlertCircle, AlertTriangle, Clock } from "lucide-react";
+
 export default function PainPoints() {
   return (
     <section className="py-24 bg-white border-b border-neutral-200" id="pain-points">
@@ -12,9 +14,7 @@ export default function PainPoints() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Pain Point 1: Excel Dễ Sai Sót */}
           <div className="bg-background border border-neutral-200 border-l-4 border-l-danger rounded-lg p-6 flex flex-col gap-4">
-            <svg className="text-danger w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+            <AlertCircle className="text-danger w-7 h-7" />
             <h3 className="text-lg font-bold text-neutral-900">File Excel Dễ Sai Sót</h3>
             <p className="text-neutral-600 text-[0.95rem] leading-relaxed">
               Các công thức tính toán phức tạp, việc nhập liệu thủ công lặp đi lặp lại rất dễ dẫn đến sai sót, nhầm lẫn điểm thi đua giữa học sinh và các tổ.
@@ -23,9 +23,7 @@ export default function PainPoints() {
 
           {/* Pain Point 2: Tốn Thời Gian Làm Báo Cáo */}
           <div className="bg-background border border-neutral-200 border-l-4 border-l-danger rounded-lg p-6 flex flex-col gap-4">
-            <svg className="text-danger w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Clock className="text-danger w-7 h-7" />
             <h3 className="text-lg font-bold text-neutral-900">Cực Hình Tổng Kết Cuối Tuần</h3>
             <p className="text-neutral-600 text-[0.95rem] leading-relaxed">
               Giáo viên phải dành nhiều giờ tối Chủ Nhật để đọc và cộng điểm từ các biên bản viết tay rời rạc của tổ trưởng, gây áp lực công việc lớn.
@@ -34,9 +32,7 @@ export default function PainPoints() {
 
           {/* Pain Point 3: Thiếu Minh Bạch */}
           <div className="bg-background border border-neutral-200 border-l-4 border-l-danger rounded-lg p-6 flex flex-col gap-4">
-            <svg className="text-danger w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
+            <AlertTriangle className="text-danger w-7 h-7" />
             <h3 className="text-lg font-bold text-neutral-900">Thiếu Minh Bạch & Tranh Chấp</h3>
             <p className="text-neutral-600 text-[0.95rem] leading-relaxed">
               Học sinh không nắm được lý do và thời điểm mình bị trừ điểm, dẫn đến những tranh cãi không đáng có về xếp hạng thi đua giữa các tổ.

@@ -1,3 +1,4 @@
+import { CheckCircle2 } from 'lucide-react';
 import heroIllustration from '../../assets/hero_illustration.png';
 import { Button } from '../ui/Button';
 
@@ -20,37 +21,31 @@ export default function Hero({ onRegisterClick }: HeroProps) {
             <p className="text-lg md:text-xl text-neutral-600 max-w-xl">
               Không còn tốn hàng giờ cộng điểm thi đua hay vật lộn với bảng Excel mỗi cuối tuần. ClassManager tự động hóa toàn bộ quy trình chấm điểm và báo cáo thi đua tổ.
             </p>
-            
+
             <ul className="flex flex-col gap-3 list-none">
               <li className="flex items-start gap-3 text-base">
-                <svg className="text-success w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+                <CheckCircle2 className='text-success w-5 h-5 shrink-0 mt-0.5' />
                 <span className="text-neutral-700"><strong>Theo dõi thi đua trực quan:</strong> Chấm điểm cộng/trừ và xếp hạng tổ theo thời gian thực.</span>
               </li>
               <li className="flex items-start gap-3 text-base">
-                <svg className="text-success w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+                <CheckCircle2 className='text-success w-5 h-5 shrink-0 mt-0.5' />
                 <span className="text-neutral-700"><strong>Chốt điểm tự động:</strong> Khóa sổ điểm tự động vào 23:59 Chủ Nhật, xuất báo cáo tức thì.</span>
               </li>
               <li className="flex items-start gap-3 text-base">
-                <svg className="text-success w-5 h-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
+                <CheckCircle2 className='text-success w-5 h-5 shrink-0 mt-0.5' />
                 <span className="text-neutral-700"><strong>Thu thập lý lịch linh hoạt:</strong> Tùy chỉnh form thông tin học sinh theo nhu cầu từng lớp.</span>
               </li>
             </ul>
 
             <div className="flex gap-4 flex-wrap mt-3">
-              <Button 
+              <Button
                 onClick={onRegisterClick}
                 size="lg"
               >
                 Bắt đầu trải nghiệm ngay
               </Button>
-              <a 
-                href="#preview" 
+              <a
+                href="#preview"
                 className="inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-150 ease-in-out cursor-pointer select-none active:scale-[0.97] outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 px-6 py-3 text-lg bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400"
               >
                 Xem bảng điểm demo
@@ -59,9 +54,9 @@ export default function Hero({ onRegisterClick }: HeroProps) {
           </div>
 
           <div className="flex justify-center relative">
-            <img 
-              src={heroIllustration} 
-              alt="ClassManager Dashboard Preview" 
+            <img
+              src={heroIllustration}
+              alt="ClassManager Dashboard Preview"
               className="max-w-full h-auto rounded-2xl shadow-lg shadow-neutral-900/5 border border-neutral-200 hover:translate-y-[-4px] transition-transform duration-300 ease-out"
               width="600"
               height="400"
@@ -69,6 +64,6 @@ export default function Hero({ onRegisterClick }: HeroProps) {
           </div>
         </div>
       </div>
-    </section>
+    </section >
   );
 }

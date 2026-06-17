@@ -1,3 +1,5 @@
+import { MailOpen, Phone } from "lucide-react";
+
 export default function Footer() {
   return (
     <footer className="bg-neutral-900 text-neutral-400 py-16 border-t border-neutral-800">
@@ -41,15 +43,11 @@ export default function Footer() {
             <h4 className="text-white text-sm font-semibold mb-4 uppercase tracking-wider">Liên hệ</h4>
             <ul className="list-none flex flex-col gap-4">
               <li className="flex items-center gap-2.5 text-sm">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+                <MailOpen className="text-primary w-4 h-4" />
                 <span>support@classmanager.vn</span>
               </li>
               <li className="flex items-center gap-2.5 text-sm">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
+                <Phone className="text-primary w-4 h-4" />
                 <span>0987-654-321 (Zalo)</span>
               </li>
             </ul>
@@ -65,6 +63,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-    </footer>
+    </footer >
   );
 }
