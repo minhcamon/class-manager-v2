@@ -109,9 +109,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await authService.logout();
-    } catch (e) {
-      console.error("Logout API call failed:", e);
+      // Fire API call without awaiting to prevent UI blocking on slow/hanging network
+      authService.logout().catch((e) => console.error("Logout API call failed:", e));
     } finally {
       clearTokens();
       setUser(null);

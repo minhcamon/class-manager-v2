@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { toast } from "sonner";
+import OnboardingLayout from "@/components/common/OnboardingLayout";
 
 export default function SelectRolePage() {
   const { selectRole } = useAuth();
@@ -26,9 +27,8 @@ export default function SelectRolePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F9F8] flex items-center justify-center p-4 font-sans text-left">
-      <div className="w-full max-w-[640px] bg-white border border-[#EAEAEA] rounded-2xl shadow-sm p-8 md:p-10 flex flex-col gap-8">
-        
+    <OnboardingLayout>
+      <div className="flex flex-col gap-8">
         {/* Header Block */}
         <div className="flex flex-col gap-2 text-center max-w-[480px] mx-auto">
           <h2 className="text-2xl font-bold text-zinc-950 tracking-tight">
@@ -107,6 +107,6 @@ export default function SelectRolePage() {
         </button>
 
       </div>
-    </div>
+    </OnboardingLayout>
   );
 }

@@ -1,7 +1,10 @@
 import { Link } from 'react-router';
 import { Button } from '../ui/Button';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function CTA() {
+  const { user } = useAuth();
+
   return (
     <section className="py-24 bg-white border-b border-neutral-200" id="cta">
       <div className="max-w-7xl mx-auto px-6 w-full">
@@ -14,14 +17,34 @@ export default function CTA() {
           <p className="text-neutral-400 text-base md:text-lg max-w-2xl leading-relaxed z-10">
             Đơn giản hóa thủ tục hành chính, giải quyết triệt để tranh chấp thi đua tổ, và số hóa toàn bộ hồ sơ lớp học hoàn toàn miễn phí.
           </p>
-          <Link to="/register" className="z-10">
-            <Button 
-              size="lg"
-              className="bg-white text-neutral-900 hover:bg-neutral-100 shadow-md text-lg py-3.5 px-8"
-            >
-              Đăng ký sử dụng miễn phí
-            </Button>
-          </Link>
+          {!user ? (
+            <Link to="/register" className="z-10">
+              <Button 
+                size="lg"
+                className="bg-white text-neutral-900 hover:bg-neutral-100 shadow-md text-lg py-3.5 px-8"
+              >
+                Đăng ký sử dụng miễn phí
+              </Button>
+            </Link>
+          ) : user.role === null ? (
+            <Link to="/onboarding/select-role" className="z-10">
+              <Button 
+                size="lg"
+                className="bg-white text-neutral-900 hover:bg-neutral-100 shadow-md text-lg py-3.5 px-8"
+              >
+                Bắt đầu trải nghiệm ngay
+              </Button>
+            </Link>
+          ) : (
+            <Link to={user.role === "TEACHER" ? "/teacher/dashboard" : "/student/dashboard"} className="z-10">
+              <Button 
+                size="lg"
+                className="bg-white text-neutral-900 hover:bg-neutral-100 shadow-md text-lg py-3.5 px-8"
+              >
+                Vào dashboard
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </section>

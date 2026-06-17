@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import classService from "@/services/classService";
 import type { Class } from "@/types/class";
@@ -11,7 +10,6 @@ import {
   Home as HomeIcon,
   BookOpen,
   FileText,
-  LogOut,
   PlusCircle,
   GraduationCap,
   Building,
@@ -19,8 +17,11 @@ import {
   Award
 } from "lucide-react";
 
+import LogoutButton from "@/components/ui/LogoutButton";
+
+
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [activeClass, setActiveClass] = useState<Class | null>(null);
@@ -44,17 +45,6 @@ export default function Dashboard() {
     fetchActiveClass();
   }, [fetchActiveClass]);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("Đăng xuất thành công!");
-      navigate("/login");
-    } catch (err) {
-      console.error(err);
-      toast.error("Có lỗi xảy ra khi đăng xuất!");
-    }
-  };
-
   if (isLoadingClass) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center font-sans">
@@ -71,44 +61,36 @@ export default function Dashboard() {
     // 1. Teacher has NO active class
     if (!activeClass) {
       return (
-        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 font-sans text-left">
-          <div className="w-full max-w-[520px] bg-white border border-border rounded-2xl shadow-sm p-8 flex flex-col gap-6 text-center animate-fade-in">
-            <div className="flex flex-col gap-1.5 items-center">
-              <div className="p-4 bg-primary-light text-primary rounded-full mb-2">
-                <BookOpen className="w-8 h-8" />
+        <div className="min-h-screen bg-card flex items-center justify-center p-4 font-sans text-left">
+          <div className="w-full max-w-[520px] bg-background border border-border rounded-2xl shadow-sm p-10 flex flex-col gap-8 text-center animate-fade-in">
+            <div className="flex flex-col gap-3 items-center">
+              <div className="w-20 h-20 bg-zinc-50 text-zinc-950 rounded-full flex items-center justify-center mb-2 border border-border">
+                <BookOpen className="w-10 h-10" />
               </div>
-              <h2 className="text-2xl font-bold text-neutral-900 tracking-tight mt-3">
-                Chào mừng, {user.fullName}!
+              <h2 className="text-3xl font-extrabold text-zinc-950 tracking-tight">
+                Tạo lớp học đầu tiên
               </h2>
-              <p className="text-sm text-neutral-500 max-w-[320px] leading-relaxed">
-                Bạn chưa có lớp học chủ nhiệm hoạt động nào. Hãy tạo một lớp học mới để bắt đầu quản lý.
+              <p className="text-base text-zinc-500 max-w-[360px] leading-relaxed mx-auto">
+                Chào mừng Thầy/Cô <strong>{user.fullName}</strong>. Để bắt đầu quản lý học sinh và thi đua, bước tiếp theo là thiết lập lớp học của mình.
               </p>
             </div>
 
-            <div className="bg-[#F8FAFC] border border-border rounded-xl p-5 text-left space-y-3">
-              <div className="flex items-center gap-2.5 text-sm font-semibold text-neutral-700">
-                <Building className="w-4 h-4 text-primary" />
-                Trường học của bạn
-              </div>
-              <p className="text-sm text-neutral-900 font-medium pl-6">
-                {user.schoolName || "Chưa kết nối"}
-              </p>
+            <div className="bg-zinc-50 border border-border rounded-xl p-5 flex items-center justify-center gap-3">
+              <Building className="w-5 h-5 text-zinc-400" />
+              <span className="text-sm font-bold text-zinc-600">
+                {user.schoolName}
+              </span>
             </div>
 
             <button
-              onClick={() => navigate("/onboarding/create-class")}
-              className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+              onClick={() => navigate("/class/create")}
+              className="w-full py-4 bg-zinc-950 hover:bg-zinc-800 text-white text-base font-bold rounded-xl transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-zinc-200"
             >
-              <PlusCircle className="w-5 h-5" />
-              Tạo Lớp Học Ngay
+              <PlusCircle className="w-6 h-6" />
+              Bắt đầu tạo lớp học
             </button>
 
-            <button
-              onClick={handleLogout}
-              className="text-xs text-neutral-400 hover:text-danger hover:underline cursor-pointer"
-            >
-              Đăng xuất tài khoản
-            </button>
+            <LogoutButton className="text-sm text-zinc-400 hover:text-red-600 font-medium transition-colors mx-auto" />
           </div>
         </div>
       );
@@ -135,8 +117,8 @@ export default function Dashboard() {
               <button
                 onClick={() => setActiveTab("home")}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${activeTab === "home"
-                    ? "bg-primary-light text-primary"
-                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                  ? "bg-primary-light text-primary"
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                   }`}
               >
                 <HomeIcon className="w-[18px] h-[18px]" />
@@ -146,8 +128,8 @@ export default function Dashboard() {
               <button
                 onClick={() => setActiveTab("class")}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${activeTab === "class"
-                    ? "bg-primary-light text-primary"
-                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                  ? "bg-primary-light text-primary"
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                   }`}
               >
                 <BookOpen className="w-[18px] h-[18px]" />
@@ -157,8 +139,8 @@ export default function Dashboard() {
               <button
                 onClick={() => setActiveTab("forms")}
                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer ${activeTab === "forms"
-                    ? "bg-primary-light text-primary"
-                    : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                  ? "bg-primary-light text-primary"
+                  : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                   }`}
               >
                 <FileText className="w-[18px] h-[18px]" />
@@ -183,13 +165,11 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <button
-              onClick={handleLogout}
+            <LogoutButton
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-danger-text bg-danger-light/20 hover:bg-danger-light/50 rounded-xl transition-all cursor-pointer"
-            >
-              <LogOut className="w-[18px] h-[18px]" />
-              Đăng xuất
-            </button>
+              iconSize={18}
+              redirectPath="/"
+            />
           </div>
         </aside>
 
@@ -382,14 +362,13 @@ export default function Dashboard() {
 
         </div>
 
-        {/* Action Button */}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-semibold rounded-lg transition-all active:scale-[0.98] cursor-pointer text-center"
+        <LogoutButton
+          className="w-full py-2.5 bg-zinc-950 hover:bg-zinc-800 text-white text-sm font-semibold rounded-lg transition-all active:scale-[0.98] cursor-pointer text-center flex items-center justify-center gap-2"
+          iconSize={16}
+          redirectPath="/"
         >
-          Đăng Xuất
-        </button>
+          Đăng xuất
+        </LogoutButton>
 
       </div>
     </div>

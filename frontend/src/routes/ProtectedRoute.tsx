@@ -30,30 +30,40 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   // 2. Nếu đã đăng nhập nhưng chưa chọn vai trò (role == null)
   if (user.role === null) {
     if (path !== "/onboarding/select-role") {
-      console.log("Chưa chọn vai trò. Chuyển hướng sang select-role...");
       return <Navigate to="/onboarding/select-role" replace />;
     }
     return <Outlet />;
   }
 
-  // 3. Nếu là giáo viên (TEACHER) nhưng chưa liên kết trường (schoolName == null)
-  if (user.role === "TEACHER" && user.schoolName === null) {
-    if (path !== "/onboarding/create-school") {
-      console.log("Giáo viên chưa tạo trường. Chuyển hướng sang create-school...");
-      return <Navigate to="/onboarding/create-school" replace />;
+  // 3. Nếu là giáo viên (TEACHER) nhưng chưa liên kết trường
+  if (user.role === "TEACHER" && !user.schoolName) {
+    if (!path.startsWith("/onboarding/teacher")) {
+      return <Navigate to="/onboarding/teacher" replace />;
     }
     return <Outlet />;
   }
 
-  // 4. Nếu đã hoàn tất onboarding mà vẫn truy cập các trang onboarding, chuyển sang /dashboard
-  if (path === "/onboarding/select-role" || path === "/onboarding/create-school") {
-    console.log("Đã hoàn tất onboarding. Chuyển hướng sang dashboard...");
-    return <Navigate to="/dashboard" replace />;
+  // 4. Nếu là học sinh (STUDENT) nhưng chưa vào lớp
+  if (user.role === "STUDENT" && !user.classId) {
+    if (path !== "/onboarding/student") {
+      return <Navigate to="/onboarding/student" replace />;
+    }
+    return <Outlet />;
   }
 
-  // 5. Nếu đã đăng nhập nhưng không có Role thích hợp cho route cụ thể
+  // 5. Ngăn chặn truy cập lại các trang onboarding khi đã hoàn tất
+  const isOnboardingPath = path.startsWith("/onboarding");
+  if (isOnboardingPath) {
+    if (user.role === "TEACHER" && user.schoolName) {
+      return <Navigate to="/teacher/dashboard" replace />;
+    }
+    if (user.role === "STUDENT" && user.classId) {
+      return <Navigate to="/student/dashboard" replace />;
+    }
+  }
+
+  // 6. Kiểm tra quyền truy cập theo vai trò
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    console.warn(`Từ chối quyền truy cập: Yêu cầu vai trò trong [${allowedRoles}], tài khoản có vai trò: ${user.role}`);
     return <Navigate to="/" replace />;
   }
 

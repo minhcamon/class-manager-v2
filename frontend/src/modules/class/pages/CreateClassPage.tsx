@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,12 +20,27 @@ export default function CreateClassPage() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    const checkActiveClass = async () => {
+      try {
+        const activeClass = await classService.getActiveClass();
+        if (activeClass) {
+          toast.warning("Bạn đã có lớp học hoạt động! Không thể tạo thêm lớp mới.");
+          navigate("/dashboard");
+        }
+      } catch (err) {
+        console.error("Failed to check active class status:", err);
+      }
+    };
+    checkActiveClass();
+  }, [navigate]);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<ClassFormData>({
-    resolver: zodResolver(classSchema),
+    resolver: zodResolver(classSchema) as any,
     defaultValues: {
       basePoint: 100,
     },
