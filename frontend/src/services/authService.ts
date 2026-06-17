@@ -90,6 +90,7 @@ const authService = {
       username: u.username || "",
       fullName: u.fullName,
       email: u.googleEmail,
+      phoneNumber: u.phoneNumber,
       avatarUrl: u.avatarUrl,
       role: u.role,
       schoolName: u.schoolName

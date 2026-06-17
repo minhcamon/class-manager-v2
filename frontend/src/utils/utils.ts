@@ -1,10 +1,16 @@
 export interface DecodedUser {
+  id?: number;
   username: string;
   fullName: string;
   email: string | null;
+  phoneNumber?: string | null;
   avatarUrl: string | null;
   role: string | null;
   schoolName: string | null;
+  classId?: number;
+  teacherProfileId?: number;
+  studentProfileId?: number;
+  groupId?: number;
 }
 
 // Token Management
@@ -36,12 +42,18 @@ export const decodeToken = (token: string): DecodedUser | null => {
     const claims = JSON.parse(jsonPayload);
     
     return {
+      id: claims.sub ? parseInt(claims.sub) : 0,
       username: claims.username,
       fullName: claims.fullName || claims.name || "",
       email: claims.email || claims.googleEmail || null,
+      phoneNumber: claims.phoneNumber || null,
       avatarUrl: claims.avatar || claims.avatarUrl || null,
       role: claims.role || null,
       schoolName: claims.schoolName || null,
+      classId: claims.classId,
+      teacherProfileId: claims.teacherProfileId,
+      studentProfileId: claims.studentProfileId,
+      groupId: claims.groupId,
     };
   } catch (error) {
     console.error("decodeToken failed:", error);

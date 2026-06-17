@@ -6,7 +6,7 @@ interface Window {
           client_id: string;
           callback: (response: { credential: string }) => void;
           auto_select?: boolean;
-          [key: string]: any;
+          [key: string]: unknown;
         }) => void;
         renderButton: (
           parent: HTMLElement | null,
@@ -18,10 +18,10 @@ interface Window {
             logo_alignment?: "left" | "center";
             width?: number;
             locale?: string;
-            [key: string]: any;
+            [key: string]: unknown;
           }
         ) => void;
-        prompt: (callback?: (notification: any) => void) => void;
+        prompt: (callback?: (notification: unknown) => void) => void;
       };
     };
   };

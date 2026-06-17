@@ -69,7 +69,7 @@ export default function LoginForm({ redirectTo, onLoadingChange }: LoginFormProp
     }, 200);
 
     return () => clearInterval(interval);
-  }, [loginWithGoogle]);
+  }, [loginWithGoogle, navigate, redirectTo]);
 
   // Sync loading state with parent if needed
   if (onLoadingChange) {
