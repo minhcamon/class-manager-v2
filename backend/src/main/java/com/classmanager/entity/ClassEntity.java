@@ -47,6 +47,9 @@ public class ClassEntity {
     @Column(name = "class_password_hash", nullable = false, length = 100)
     private String classPasswordHash;
 
+    @Column(name = "class_password", length = 50)
+    private String classPassword;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

@@ -12,12 +12,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-interface ClassManagementPageProps {
+interface ClassManagementContentProps {
   classData: Class;
   onClassEnded: () => void;
 }
 
-export default function ClassManagementPage({ classData, onClassEnded }: ClassManagementPageProps) {
+export default function ClassManagementContent({ classData, onClassEnded }: ClassManagementContentProps) {
   const [isEnding, setIsEnding] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 

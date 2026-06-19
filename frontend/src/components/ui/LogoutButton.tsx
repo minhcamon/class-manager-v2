@@ -8,6 +8,8 @@ interface LogoutButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   iconClassName?: string;
   redirectPath?: string;
   children?: React.ReactNode;
+  /** When true, hides the text label (icon-only mode for collapsed sidebars) */
+  hideLabel?: boolean;
 }
 
 const LogoutButton = ({
@@ -16,6 +18,7 @@ const LogoutButton = ({
   iconClassName = "",
   redirectPath = "/",
   children = "Đăng xuất",
+  hideLabel = false,
   ...props
 }: LogoutButtonProps) => {
   const { logout } = useAuth();
@@ -49,7 +52,7 @@ const LogoutButton = ({
       ) : (
         <LogOut size={iconSize} className={`shrink-0 ${iconClassName}`} />
       )}
-      <span>{children}</span>
+      {!hideLabel && <span>{children}</span>}
     </button>
   );
 };

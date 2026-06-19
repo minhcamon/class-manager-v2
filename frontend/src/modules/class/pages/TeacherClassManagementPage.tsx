@@ -3,10 +3,10 @@ import { useParams, useNavigate } from "react-router";
 import { toast } from "sonner";
 import classService from "@/services/classService";
 import type { Class } from "@/types/class";
-import ClassManagementPage from "./ClassManagementPage";
+import ClassManagementContent from "../components/ClassManagementContent";
 import { Loader2 } from "lucide-react";
 
-export default function TeacherClassManagement() {
+export default function TeacherClassManagementPage() {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const [classData, setClassData] = useState<Class | null>(null);
@@ -48,7 +48,7 @@ export default function TeacherClassManagement() {
   }
 
   return (
-    <ClassManagementPage 
+    <ClassManagementContent 
       classData={classData} 
       onClassEnded={() => navigate("/teacher/dashboard")} 
     />

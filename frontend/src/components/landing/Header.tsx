@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { Button } from '../ui/Button';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/common/Logo';
 
 export default function Header() {
   const { user } = useAuth();
@@ -8,10 +9,7 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 h-[72px] bg-background/80 backdrop-blur-md border-b border-neutral-200 z-50 transition-colors duration-150">
       <div className="max-w-7xl mx-auto px-6 h-full flex justify-between items-center">
-        <a href="#hero" className="flex items-center gap-2.5 text-xl font-bold text-neutral-900 no-underline">
-          <span className="w-8 h-8 bg-primary rounded-[6px] flex items-center justify-center text-white font-extrabold text-lg">C</span>
-          ClassManager
-        </a>
+        <Logo variant="c-box" as="anchor" to="#hero" />
 
         <nav>
           <ul className="hidden lg:flex items-center gap-8 list-none">

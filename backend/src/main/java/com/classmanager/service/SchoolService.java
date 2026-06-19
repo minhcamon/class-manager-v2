@@ -2,6 +2,7 @@ package com.classmanager.service;
 
 import com.classmanager.dto.auth.response.UserResponse;
 import com.classmanager.dto.school.request.SchoolCreateRequest;
+import com.classmanager.dto.school.response.SchoolResponse;
 import com.classmanager.entity.School;
 import com.classmanager.entity.User;
 import com.classmanager.enums.Role;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,5 +54,22 @@ public class SchoolService {
                 .avatarUrl(updatedUser.getAvatarUrl())
                 .createdAt(updatedUser.getCreatedAt())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SchoolResponse> getSchools(String search) {
+        List<School> schools;
+        if (search == null || search.trim().isEmpty()) {
+            schools = schoolRepository.findAll();
+        } else {
+            schools = schoolRepository.findByNameContainingIgnoreCase(search.trim());
+        }
+        return schools.stream()
+                .map(school -> SchoolResponse.builder()
+                        .id(school.getId())
+                        .name(school.getName())
+                        .address(school.getAddress())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

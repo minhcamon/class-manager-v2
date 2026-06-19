@@ -1,17 +1,52 @@
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { BookOpen, PlusCircle } from "lucide-react";
-import { useNavigate } from "react-router";
+import { BookOpen, PlusCircle, Loader2 } from "lucide-react";
+import { useNavigate, Navigate } from "react-router";
+import classService from "@/services/classService";
+import type { Class } from "@/types/class";
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [activeClass, setActiveClass] = useState<Class | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // This is a simplified version of the logic from the old Dashboard.tsx
-  // In a real scenario, we'd check if they have an active class.
-  // For now, let's just show a welcome message or redirect to class creation if none.
+  const fetchClass = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const cls = await classService.getActiveClass();
+      setActiveClass(cls);
+    } catch (error) {
+      console.error("Failed to fetch active class:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
+  useEffect(() => {
+    fetchClass();
+  }, [fetchClass]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 font-sans">
+        <Loader2 className="animate-spin text-primary w-10 h-10 mb-4" />
+        <p className="text-neutral-500 font-medium animate-pulse">
+          Đang tải dữ liệu lớp học...
+        </p>
+      </div>
+    );
+  }
+
+  // If teacher has an active class, redirect straight to class overview
+  if (activeClass) {
+    return <Navigate to={`/teacher/classes/${activeClass.id}`} replace />;
+  }
+
+  // No active class — show "create class" prompt
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8 animate-fade-in font-sans">
       {/* Welcome Banner */}
       <div className="bg-white rounded-2xl border border-border p-8 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
@@ -19,48 +54,30 @@ export default function TeacherDashboard() {
             Xin chào, Thầy/Cô {user?.fullName?.split(" ").pop()}!
           </h1>
           <p className="text-neutral-500 text-base mt-2">
-            Chào mừng bạn quay trở lại. Hãy chọn một lớp học để bắt đầu làm việc.
+            Bạn chưa thiết lập lớp học nào. Hãy tạo một lớp học để bắt đầu quản lý thi đua.
           </p>
         </div>
 
         <button
           onClick={() => navigate("/teacher/classes/create")}
-          className="px-6 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-md shadow-primary/20"
+          className="px-6 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-md shadow-primary/20 cursor-pointer shrink-0"
         >
           <PlusCircle className="w-5 h-5" />
           Tạo lớp mới
         </button>
       </div>
 
-      {/* Stats or Class Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Mock Class Card */}
-        <div 
-          onClick={() => navigate("/teacher/classes/1")} // Mock ID
-          className="bg-white rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group"
-        >
-          <div className="flex justify-between items-start mb-4">
-            <div className="p-3 bg-primary-light text-primary rounded-xl group-hover:scale-110 transition-transform">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <span className="text-[10px] font-bold text-success-text bg-success-light px-2 py-1 rounded-full uppercase">
-              Đang hoạt động
-            </span>
-          </div>
-          <h3 className="text-xl font-bold text-neutral-900 mb-1">Lớp 10A1</h3>
-          <p className="text-sm text-neutral-500 mb-4">Trường THPT Lê Hồng Phong</p>
-          
-          <div className="flex items-center justify-between pt-4 border-t border-border/50 text-sm">
-            <div className="flex flex-col">
-              <span className="text-neutral-400 text-[10px] uppercase font-bold">Học sinh</span>
-              <span className="font-bold text-neutral-700">42</span>
-            </div>
-            <div className="flex flex-col text-right">
-              <span className="text-neutral-400 text-[10px] uppercase font-bold">Ngày tạo</span>
-              <span className="font-bold text-neutral-700">18/06/2026</span>
-            </div>
-          </div>
+      {/* Empty state */}
+      <div className="bg-neutral-50 border border-dashed border-neutral-300 rounded-2xl p-16 text-center">
+        <div className="w-16 h-16 bg-white border border-border rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm">
+          <BookOpen className="w-8 h-8 text-neutral-300" />
         </div>
+        <p className="text-base font-semibold text-neutral-600">
+          Không có lớp học nào đang hoạt động
+        </p>
+        <p className="text-sm text-neutral-400 mt-2 max-w-xs mx-auto">
+          Tạo lớp học đầu tiên để bắt đầu quản lý thi đua và theo dõi học sinh.
+        </p>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import RegisterForm from "../components/RegisterForm";
+import Logo from "@/components/common/Logo";
 
 interface RegisterPageProps {
   redirectTo: string;
@@ -23,9 +24,7 @@ export default function RegisterPage({ redirectTo }: RegisterPageProps) {
           <h2 className="text-2xl font-bold text-zinc-950 tracking-tight">
             Chào mừng bạn đến với
           </h2>
-          <span className="text-xl font-extrabold text-[#1F6C9F] tracking-tight">
-            ClassManager
-          </span>
+          <Logo variant="text-only" as="div" />
         </div>
 
         {/* Tab Selection */}

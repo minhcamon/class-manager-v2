@@ -1,4 +1,5 @@
 import { MailOpen, Phone } from "lucide-react";
+import Logo from "@/components/common/Logo";
 
 export default function Footer() {
   return (
@@ -7,10 +8,13 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-12 text-left">
           {/* Col 1: About */}
           <div className="flex flex-col gap-4">
-            <a href="#hero" className="text-white text-xl font-bold no-underline flex items-center gap-2">
-              <span className="w-8 h-8 bg-primary rounded-[6px] flex items-center justify-center text-white font-extrabold text-lg">C</span>
-              ClassManager
-            </a>
+            <Logo 
+              variant="c-box" 
+              as="anchor" 
+              to="#hero" 
+              className="text-white text-xl font-bold no-underline flex items-center gap-2"
+              textClassName="text-white font-bold tracking-tight"
+            />
             <p className="text-sm leading-relaxed">
               Hệ thống quản lý lớp học chủ nhiệm thông minh giúp tối ưu hóa thời gian cho giáo viên chủ nhiệm và nâng cao tinh thần tự quản của học sinh.
             </p>

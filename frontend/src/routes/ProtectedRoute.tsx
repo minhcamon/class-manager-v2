@@ -58,7 +58,7 @@ const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
       return <Navigate to="/teacher/dashboard" replace />;
     }
     if (user.role === "STUDENT" && user.classId) {
-      return <Navigate to="/student/dashboard" replace />;
+      return <Navigate to={`/student/class/${user.classId}`} replace />;
     }
   }
 

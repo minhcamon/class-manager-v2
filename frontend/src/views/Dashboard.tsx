@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router";
 import classService from "@/services/classService";
 import type { Class } from "@/types/class";
-import { ClassManagementPage } from "@/modules/class";
+import { ClassManagementContent } from "@/modules/class";
 import { FormManagementPage } from "@/modules/form";
 import {
   Home as HomeIcon,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import LogoutButton from "@/components/ui/LogoutButton";
+import Logo from "@/components/common/Logo";
 
 
 export default function Dashboard() {
@@ -103,14 +104,7 @@ export default function Dashboard() {
         <aside className="w-64 bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0">
           <div className="p-6 space-y-8">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary text-white rounded-xl">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <span className="font-extrabold text-neutral-900 tracking-tight text-xl">
-                ClassManager
-              </span>
-            </div>
+            <Logo as="div" />
 
             {/* Nav Menu */}
             <nav className="space-y-1">
@@ -277,7 +271,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === "class" && (
-            <ClassManagementPage
+            <ClassManagementContent
               classData={activeClass}
               onClassEnded={() => setActiveClass(null)}
             />

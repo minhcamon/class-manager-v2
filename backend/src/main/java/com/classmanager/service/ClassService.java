@@ -12,6 +12,8 @@ import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.UserRepository;
 import com.classmanager.repository.EnrollmentRepository;
 import com.classmanager.enums.EnrollmentStatus;
+import com.classmanager.exception.CustomException;
+import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,12 +43,16 @@ public class ClassService {
             throw new ActiveClassExistsException();
         }
 
+        if (classRepository.existsBySchoolIdAndClassNameAndStatus(teacher.getSchool().getId(), request.getClassName(), ClassStatus.ACTIVE)) {
+            throw new CustomException(HttpStatus.CONFLICT, "DUPLICATE_CLASS_NAME", "Lớp học '" + request.getClassName() + "' đã tồn tại trong trường học.");
+        }
+
         // Generate 6-character random class code
         String rawCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         
-        // Handle password hashing (assume requested password or default)
-        // Since ClassCreateRequest might not have password right now, we use a placeholder "123456" for demo
-        String classPasswordHash = passwordEncoder.encode("123456");
+        // Generate random 8-character class password
+        String rawPassword = generateRandomPassword();
+        String classPasswordHash = passwordEncoder.encode(rawPassword);
 
         ClassEntity classEntity = ClassEntity.builder()
                 .className(request.getClassName())
@@ -56,6 +62,7 @@ public class ClassService {
                 .status(ClassStatus.ACTIVE)
                 .basePoint(request.getBasePoint())
                 .classCode(rawCode)
+                .classPassword(rawPassword)
                 .classPasswordHash(classPasswordHash)
                 .build();
 
@@ -101,8 +108,19 @@ public class ClassService {
                 .schoolId(entity.getSchool().getId())
                 .schoolName(entity.getSchool().getName())
                 .classCode(entity.getClassCode())
+                .classPassword(entity.getClassPassword() != null ? entity.getClassPassword() : "123456")
                 .studentCount(studentCount)
                 .createdAt(entity.getCreatedAt())
                 .build();
+    }
+
+    private String generateRandomPassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 8; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 }

@@ -1,5 +1,10 @@
 import { CreateClassPage } from "@/modules/class";
+import TeacherLayout from "@/components/common/TeacherLayout";
 
 export default function CreateClass() {
-  return <CreateClassPage />;
+  return (
+    <TeacherLayout>
+      <CreateClassPage />
+    </TeacherLayout>
+  );
 }

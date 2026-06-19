@@ -1,5 +1,6 @@
 import React from "react";
 import LogoutButton from "@/components/ui/LogoutButton";
+import Logo from "@/components/common/Logo";
 
 interface OnboardingLayoutProps {
   children: React.ReactNode;
@@ -10,12 +11,7 @@ const OnboardingLayout = ({ children }: OnboardingLayoutProps) => {
     <div className="min-h-screen bg-card flex flex-col font-sans">
       {/* Header with Logout Access */}
       <header className="w-full h-16 border-b border-border bg-background px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-zinc-950 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">C</span>
-          </div>
-          <span className="text-lg font-bold text-foreground tracking-tight">ClassManager</span>
-        </div>
+        <Logo variant="c-box" cBoxBg="dark" as="div" />
         
         <LogoutButton className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:text-red-600 hover:bg-red-50/50 rounded-lg transition-all cursor-pointer" />
       </header>

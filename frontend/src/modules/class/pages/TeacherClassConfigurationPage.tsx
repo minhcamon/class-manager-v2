@@ -21,7 +21,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-export default function TeacherClassConfiguration() {
+export default function TeacherClassConfigurationPage() {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const [classData, setClassData] = useState<Class | null>(null);

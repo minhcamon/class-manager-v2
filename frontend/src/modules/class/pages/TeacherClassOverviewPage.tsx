@@ -17,11 +17,12 @@ import {
   EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import classService from "@/services/classService";
 import type { Class } from "@/types/class";
 import Button from "@/components/ui/Button";
 
-export default function TeacherClassOverview() {
+export default function TeacherClassOverviewPage() {
   const { classId } = useParams<{ classId: string }>();
   const navigate = useNavigate();
   const [classData, setClassData] = useState<Class | null>(null);
@@ -39,7 +40,14 @@ export default function TeacherClassOverview() {
         setClassData(data);
       } catch (error) {
         console.error("Failed to fetch class details:", error);
-        toast.error("Không thể tải thông tin lớp học.");
+        if (isAxiosError(error) && error.response?.status === 404) {
+          // Stale cache — clear it and redirect to dashboard
+          sessionStorage.removeItem("active_class");
+          toast.error("Lớp học không tồn tại hoặc đã bị xóa.");
+          navigate("/teacher/dashboard");
+        } else {
+          toast.error("Không thể tải thông tin lớp học.");
+        }
       } finally {
         setIsLoading(false);
       }
