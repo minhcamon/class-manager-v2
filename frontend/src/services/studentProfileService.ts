@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import type { StudentProfile, StudentProfileUpdateRequest } from "@/types/studentProfile";
+import type { StudentProfile, StudentProfileUpdateRequest, ClassStudentResponse } from "@/types/studentProfile";
 import type { APIResponse } from "./authService";
 
 const studentProfileService = {
@@ -15,6 +15,11 @@ const studentProfileService = {
 
   getStudentProfile: async (classId: number, studentId: number): Promise<StudentProfile> => {
     const response = await api.get<APIResponse<StudentProfile>>(`/classes/${classId}/students/${studentId}/profile`);
+    return response.data.data;
+  },
+
+  getClassStudents: async (classId: number): Promise<ClassStudentResponse[]> => {
+    const response = await api.get<APIResponse<ClassStudentResponse[]>>(`/classes/${classId}/students`);
     return response.data.data;
   }
 };

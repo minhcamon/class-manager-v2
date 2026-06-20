@@ -3,7 +3,9 @@ package com.classmanager.controller;
 import com.classmanager.dto.common.APIResponse;
 import com.classmanager.dto.school.request.StudentProfileUpdateRequest;
 import com.classmanager.dto.school.response.StudentProfileResponse;
+import com.classmanager.dto.school.response.ClassStudentResponse;
 import com.classmanager.service.StudentProfileService;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +17,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import com.classmanager.entity.Enrollment;
+import com.classmanager.exception.CustomException;
+import org.springframework.http.HttpStatus;
+
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -22,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 public class StudentProfileController {
 
     private final StudentProfileService studentProfileService;
+    private final com.classmanager.repository.EnrollmentRepository enrollmentRepository;
 
     @PutMapping("/students/me/profile")
     @PreAuthorize("hasRole('STUDENT')")
@@ -78,23 +85,53 @@ public class StudentProfileController {
         return ResponseEntity.ok(APIResponse.success("Student profile retrieved successfully", response));
     }
 
+    @GetMapping("/classes/{classId}/students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT')")
+    @Operation(
+        summary = "Get class students", 
+        description = "Teacher or Student retrieves the list of students in the class with their points and group mapping.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Class students retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Not authorized for this class"),
+            @ApiResponse(responseCode = "404", description = "Class not found")
+        }
+    )
+    public ResponseEntity<APIResponse<List<ClassStudentResponse>>> getClassStudents(
+            @Parameter(description = "ID of the class") @PathVariable Integer classId) {
+        Long currentUserId = getCurrentUserId();
+        com.classmanager.enums.Role role = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .filter(auth -> auth.startsWith("ROLE_"))
+                .map(auth -> com.classmanager.enums.Role.valueOf(auth.replace("ROLE_", "")))
+                .findFirst()
+                .orElse(com.classmanager.enums.Role.STUDENT);
+        
+        List<ClassStudentResponse> response = studentProfileService.getClassStudents(currentUserId, role, classId);
+        return ResponseEntity.ok(APIResponse.success("Class students retrieved successfully", response));
+    }
+
     private Long getCurrentUserId() {
         return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
-    // Placeholders for Feature 03 integration
     private Integer getCurrentEnrollmentId() {
-        // This will be replaced by JWT claim extraction in Feature 03
-        return 1; 
+        Long userId = getCurrentUserId();
+        return enrollmentRepository.findByUserId(userId)
+                .map(Enrollment::getId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "Bạn chưa tham gia lớp học nào."));
     }
 
     private Integer getCurrentClassId() {
-        // This will be replaced by JWT claim extraction in Feature 03
-        return 1;
+        Long userId = getCurrentUserId();
+        return enrollmentRepository.findByUserId(userId)
+                .map(e -> e.getClassEntity().getId())
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "Bạn chưa tham gia lớp học nào."));
     }
 
     private Integer findEnrollmentId(Integer classId, Long studentId) {
-        // This will be implemented in Feature 03 with EnrollmentRepository
-        return 1;
+        return enrollmentRepository.findByUserId(studentId)
+                .filter(e -> e.getClassEntity().getId().equals(classId))
+                .map(Enrollment::getId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "Học sinh chưa tham gia lớp học này."));
     }
 }

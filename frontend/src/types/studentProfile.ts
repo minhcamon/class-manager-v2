@@ -1,4 +1,4 @@
-import { FormTemplate } from "./form";
+import type { FormTemplate } from "./form";
 
 export interface StudentProfile {
   id: number;
@@ -12,4 +12,16 @@ export interface StudentProfile {
 
 export interface StudentProfileUpdateRequest {
   data: Record<string, string | number | boolean | null>;
+}
+
+export interface ClassStudentResponse {
+  studentProfileId: number;
+  userId: number;
+  fullName: string;
+  username: string;
+  phoneNumber: string;
+  groupId: number | null;
+  groupName: string | null;
+  isLeader: boolean;
+  currentPoint: number;
 }

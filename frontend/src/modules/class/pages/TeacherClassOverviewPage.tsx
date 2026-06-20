@@ -54,7 +54,7 @@ export default function TeacherClassOverviewPage() {
     };
 
     fetchClassDetails();
-  }, [classId]);
+  }, [classId, navigate]);
 
   const copyToClipboard = (text: string, type: "code" | "password") => {
     navigator.clipboard.writeText(text);

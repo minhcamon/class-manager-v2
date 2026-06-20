@@ -4,3 +4,4 @@ export { default as TeacherClassConfigurationPage } from "./pages/TeacherClassCo
 export { default as StudentClassOverviewPage } from "./pages/StudentClassOverviewPage";
 export { default as CreateClassPage } from "./pages/CreateClassPage";
 export { default as ClassManagementContent } from "./components/ClassManagementContent";
+export { default as DailyCanvasPage } from "./pages/DailyCanvasPage";

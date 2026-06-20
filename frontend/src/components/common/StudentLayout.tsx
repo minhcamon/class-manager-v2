@@ -7,8 +7,11 @@ import {
   Trophy,
   TableProperties,
   PanelLeft,
+  Award,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
+import groupService from "@/services/groupService";
+import studentProfileService from "@/services/studentProfileService";
 
 interface StudentLayoutProps {
   children: ReactNode;
@@ -28,17 +31,53 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     }
   });
 
+  // Track if current user is a group leader for this class
+  const [isGroupLeader, setIsGroupLeader] = useState(false);
+
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_KEY, String(collapsed));
-    } catch {}
+    } catch (err) {
+      console.debug("Failed to save sidebar state:", err);
+    }
   }, [collapsed]);
 
-  // Extract classId from URL
-  const classIdMatch = location.pathname.match(/\/student\/class\/([^/]+)/);
+  // Extract classId from URL (handles both /student/class/:classId and /teacher/classes/:classId patterns)
+  const classIdMatch =
+    location.pathname.match(/\/student\/class\/([^/]+)/) ||
+    location.pathname.match(/\/teacher\/classes\/([^/]+)/);
   const classId = classIdMatch ? classIdMatch[1] : user?.classId;
 
-  const navItems = [
+  // Fetch group leader status whenever classId or user changes
+  useEffect(() => {
+    if (!classId || !user?.id) {
+      setIsGroupLeader(false);
+      return;
+    }
+    let cancelled = false;
+    Promise.all([
+      groupService.getClassGroups(parseInt(String(classId))),
+      studentProfileService.getClassStudents(parseInt(String(classId))),
+    ])
+      .then(([groups, students]) => {
+        if (cancelled) return;
+        const myStudent = students.find((s) => s.userId === user.id);
+        if (myStudent) {
+          const led = groups.find((g) => g.leaderStudentId === myStudent.studentProfileId);
+          setIsGroupLeader(!!led);
+        } else {
+          setIsGroupLeader(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setIsGroupLeader(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [classId, user?.id]);
+
+  const baseNavItems = [
     {
       label: "Tổng quan",
       path: `/student/class/${classId}`,
@@ -64,6 +103,15 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       exact: false,
     },
   ];
+
+  const leaderNavItem = {
+    label: "Chấm điểm thi đua",
+    path: `/student/class/${classId}/daily-canvas`,
+    icon: Award,
+    exact: false,
+  };
+
+  const navItems = isGroupLeader ? [...baseNavItems, leaderNavItem] : baseNavItems;
 
   const isActive = (item: (typeof navItems)[0]) => {
     if (item.exact) {
@@ -137,7 +185,9 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                     ${collapsed ? "justify-center px-0 py-3 w-10 h-10 mx-auto" : "px-3 py-2.5 w-full"}
                     ${
                       active
-                        ? "bg-primary-light text-primary"
+                        ? item.label === "Chấm điểm thi đua"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-primary-light text-primary"
                         : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }
                   `}
@@ -145,7 +195,13 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                   <item.icon
                     className={`shrink-0 transition-transform ${
                       collapsed ? "w-5 h-5" : "w-[18px] h-[18px]"
-                    } ${active ? "text-primary" : ""}`}
+                    } ${
+                      active
+                        ? item.label === "Chấm điểm thi đua"
+                          ? "text-amber-600"
+                          : "text-primary"
+                        : ""
+                    }`}
                   />
                   {!collapsed && (
                     <span className="text-sm font-semibold truncate">
@@ -185,7 +241,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                   {user?.fullName}
                 </p>
                 <p className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-wider">
-                  Học Sinh
+                  {isGroupLeader ? "Tổ Trưởng" : "Học Sinh"}
                 </p>
               </div>
             </div>

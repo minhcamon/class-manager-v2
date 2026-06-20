@@ -15,4 +15,6 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Integer>
     Optional<Enrollment> findByUserIdWithClass(@Param("userId") Long userId);
 
     long countByClassEntityIdAndStatus(Integer classId, EnrollmentStatus status);
+
+    java.util.List<Enrollment> findByClassEntityIdAndStatus(Integer classId, EnrollmentStatus status);
 }

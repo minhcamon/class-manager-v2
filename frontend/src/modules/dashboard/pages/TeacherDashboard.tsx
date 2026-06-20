@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { BookOpen, PlusCircle, Loader2 } from "lucide-react";
@@ -8,14 +9,27 @@ import type { Class } from "@/types/class";
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeClass, setActiveClass] = useState<Class | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [activeClass, setActiveClass] = useState<Class | null>(() => {
+    try {
+      const cached = sessionStorage.getItem("active_class");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    return !sessionStorage.getItem("active_class_fetched");
+  });
 
   const fetchClass = useCallback(async () => {
-    setIsLoading(true);
+    const hasFetched = sessionStorage.getItem("active_class_fetched");
+    if (!hasFetched) {
+      setIsLoading(true);
+    }
     try {
       const cls = await classService.getActiveClass();
       setActiveClass(cls);
+      sessionStorage.setItem("active_class_fetched", "true");
     } catch (error) {
       console.error("Failed to fetch active class:", error);
     } finally {

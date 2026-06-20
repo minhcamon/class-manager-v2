@@ -38,7 +38,7 @@ When developing a new backend feature, adhere to the following sequence:
 4. **Audit Logging Integration**: If the feature involves actions that require auditing (BR-AUDIT-02), integrate audit logging via JPA Entity Listeners or call `AuditLogService` synchronously within the transaction.
 5. **DTOs & Validation**: Create Request/Response DTOs in the `dto` package, applying Bean Validation annotations (`@NotNull`, `@NotBlank`, `@Size`, `@Pattern`, `@Min`, `@Max`).
 6. **Controller**: Create the Controller in the `controller` package, map requests with `@Valid`, and enforce access control using `@PreAuthorize`.
-7. **Verify**: Compile and test using Gradle.
+7. **Verify**: Compile and test using Maven.
 
 **Layer Conventions:**
 **Controller Layer:**
@@ -77,8 +77,8 @@ studentRepository.save(student);
 **Calculate current points:**
 ```java
 // Always compute from point_logs, do not use a cached total field.
-int currentPoint = schoolYear.getBasePoint()
-    + pointLogRepository.sumByStudentAndYear(studentId, schoolYearId);
+int currentPoint = classEntity.getBasePoint()
+    + pointLogRepository.sumPointValuesByStudentId(studentId);
 ```
 
 **Check if the week is locked before grading:**
@@ -97,7 +97,7 @@ if (!student.getGroupId().equals(leader.getGroupId())) {
 
 ### 4. Authentication & Authorization
 - Use `@PreAuthorize("hasRole('TEACHER')")` or custom `@SecurityRequirement`.
-- JWT payload must contain: `sub`, `role`, `classId`, `groupId`, `schoolYearId`.
+- JWT payload must contain: `sub`, `role`, `classId`, `groupId`, `schoolId`.
 - Store Refresh Token in an HttpOnly Cookie — DO NOT return it in the response body.
 - Store OTP in the Database as a BCrypt hash — DO NOT store as plain text.
 - **Mock OTP Mechanism (MVP/Dev)**: When `SMS_API_KEY` is not configured (left blank), the OTP sending response (`SmsResponse`) must return the plain text OTP in the `otp` field so the Frontend can display it. When `SMS_API_KEY` is active, the `otp` field in `SmsResponse` must return `null` (no exposure).
@@ -123,7 +123,7 @@ if (!student.getGroupId().equals(leader.getGroupId())) {
   4. Transfer student group (`TRANSFER_STUDENT_GROUP`)
   5. Activate dynamic form template (`ACTIVATE_FORM_TEMPLATE`)
   6. Lock weekly points manually/automatically (`WEEKLY_LOCK_MANUAL`, `WEEKLY_LOCK_AUTO`)
-  7. End school year (`END_SCHOOL_YEAR`)
+  7. End class (`END_CLASS`)
 - How to implement: Call `AuditLogService.logAction(...)` in the Service, or use JPA `@EntityListeners` to automatically capture `old_value` and `new_value` as JSONB.
 - **Strictly prohibit** providing any APIs that allow `UPDATE` or `DELETE` on the `audit_logs` table. Only `INSERT` is permitted.
 
@@ -156,7 +156,7 @@ spring:
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
   hikari:
     maximum-pool-size: 15
     minimum-idle: 3
@@ -199,10 +199,10 @@ After creating or modifying Java code:
 cd backend
 
 # Step 2: Compile and check for errors
-./gradlew compileJava
+./mvnw compile
 
 # Step 3: Run related tests (if applicable)
-./gradlew test --tests "ClassNameTest"
+./mvnw test -Dtest=ClassNameTest
 
 # Step 4: Only create the Walkthrough artifact if compile succeeds
 ```
@@ -221,5 +221,5 @@ cd backend
 ❌ Hardcoding secrets, URLs, or credentials — always use `${ENV_VAR}` in application.yml
 ❌ Committing `.env` file to Git — only commit `.env.example`
 ❌ Native queries with user inputs
-❌ Creating a second SchoolYear when there is already an ACTIVE one
+❌ Teacher creating a second Class when they already have an ACTIVE one
 ```

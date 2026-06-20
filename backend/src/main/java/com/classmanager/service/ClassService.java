@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.classmanager.repository.FormTemplateRepository;
+import com.classmanager.entity.FormTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.UUID;
 
@@ -29,6 +31,7 @@ public class ClassService {
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FormTemplateRepository formTemplateRepository;
 
     @Transactional
     public ClassResponse createClass(Long teacherId, ClassCreateRequest request) {
@@ -67,6 +70,16 @@ public class ClassService {
                 .build();
 
         ClassEntity savedClass = classRepository.save(classEntity);
+
+        FormTemplate defaultForm = FormTemplate.builder()
+                .classEntity(savedClass)
+                .title("Thông tin học sinh")
+                .structure("[]")
+                .version(1)
+                .isActive(true)
+                .build();
+        formTemplateRepository.save(defaultForm);
+
         return mapToResponse(savedClass);
     }
 

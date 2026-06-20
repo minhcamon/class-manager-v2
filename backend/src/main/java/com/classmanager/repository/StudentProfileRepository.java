@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface StudentProfileRepository extends JpaRepository<StudentProfile, Integer> {
     Optional<StudentProfile> findByEnrollmentId(Integer enrollmentId);
+    java.util.List<StudentProfile> findByEnrollmentClassEntityId(Integer classId);
 }

@@ -1,16 +1,27 @@
-import { useState } from "react";
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { ShieldAlert, BookOpen, GraduationCap, Award, Building, Calendar, Info } from "lucide-react";
+import { 
+  BookOpen, 
+  Plus, 
+  Loader2, 
+  Info,
+  Check,
+  Cloud
+} from "lucide-react";
 import type { Class } from "@/types/class";
-import classService from "@/services/classService";
+import type { Group } from "@/types/group";
+import type { ClassStudentResponse } from "@/types/studentProfile";
+import groupService from "@/services/groupService";
+import studentProfileService from "@/services/studentProfileService";
 import Button from "@/components/ui/Button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+
+// Sub-components
+import GroupColumn from "./GroupColumn";
+import CreateGroupDialog from "./CreateGroupDialog";
+import StudentActionDialog from "./StudentActionDialog";
+import ClassDetailsCard from "./ClassDetailsCard";
+import DangerZoneCard from "./DangerZoneCard";
 
 interface ClassManagementContentProps {
   classData: Class;
@@ -18,191 +29,379 @@ interface ClassManagementContentProps {
 }
 
 export default function ClassManagementContent({ classData, onClassEnded }: ClassManagementContentProps) {
-  const [isEnding, setIsEnding] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"roster" | "settings">("roster");
+  const [students, setStudents] = useState<ClassStudentResponse[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
-  const handleEndClass = async () => {
-    setIsEnding(true);
+  // Local state for in-memory UX responsiveness and Autosave status
+  const [localStudents, setLocalStudents] = useState<ClassStudentResponse[]>([]);
+  const [localGroups, setLocalGroups] = useState<Group[]>([]);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "unsaved" | "saving" | "saved">("idle");
+
+  const localStudentsRef = useRef<ClassStudentResponse[]>([]);
+  const studentsRef = useRef<ClassStudentResponse[]>([]);
+
+  useEffect(() => {
+    localStudentsRef.current = localStudents;
+  }, [localStudents]);
+
+  useEffect(() => {
+    studentsRef.current = students;
+  }, [students]);
+
+  // Dialog & Modal states
+  const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<ClassStudentResponse | null>(null);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    setIsDataLoading(true);
     try {
-      await classService.endClass(classData.id);
-      toast.success("Kết thúc lớp học thành công!");
-      setIsConfirmOpen(false);
-      onClassEnded();
+      const [groupsData, studentsData] = await Promise.all([
+        groupService.getClassGroups(classData.id),
+        studentProfileService.getClassStudents(classData.id)
+      ]);
+      setStudents(studentsData);
+      setLocalStudents(studentsData);
+      setLocalGroups(groupsData);
+      setSaveStatus("idle");
     } catch (error) {
-      console.error(error);
-      toast.error("Không thể kết thúc lớp học. Vui lòng thử lại!");
+      console.error("Failed to fetch class roster data:", error);
+      toast.error("Không thể tải sơ đồ tổ và học sinh.");
     } finally {
-      setIsEnding(false);
+      setIsDataLoading(false);
+    }
+  }, [classData.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [classData.id, fetchData]);
+
+  // Save changes to backend
+  const saveChanges = useCallback(async (studentsToSave: ClassStudentResponse[], originalStudents: ClassStudentResponse[]) => {
+    const changes: Promise<void>[] = [];
+
+    studentsToSave.forEach(localStudent => {
+      const original = originalStudents.find(s => s.studentProfileId === localStudent.studentProfileId);
+      if (!original) return;
+
+      const groupChanged = localStudent.groupId !== original.groupId;
+      const leaderChanged = localStudent.isLeader !== original.isLeader;
+
+      if (groupChanged) {
+        changes.push(groupService.assignStudentGroup(localStudent.studentProfileId, localStudent.groupId));
+      }
+
+      if (localStudent.isLeader && leaderChanged) {
+        changes.push(groupService.assignLeader(localStudent.groupId!, localStudent.studentProfileId).then(() => {}));
+      }
+    });
+
+    if (changes.length > 0) {
+      setSaveStatus("saving");
+      try {
+        await Promise.all(changes);
+        setSaveStatus("saved");
+        setStudents(studentsToSave);
+        toast.success("Đã tự động lưu các thay đổi phân Tổ!");
+      } catch (error) {
+        console.error("Autosave failed:", error);
+        setSaveStatus("unsaved");
+        toast.error("Không thể tự động lưu thay đổi phân Tổ.");
+      }
+    } else {
+      setSaveStatus("idle");
+    }
+  }, []);
+
+  // Autosave effect (3s debounce)
+  useEffect(() => {
+    if (saveStatus !== "unsaved") return;
+
+    const timer = setTimeout(() => {
+      saveChanges(localStudents, students);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [localStudents, saveStatus, students, saveChanges]);
+
+  // Fallback save on unmount
+  useEffect(() => {
+    return () => {
+      const currentLocals = localStudentsRef.current;
+      const currentOriginals = studentsRef.current;
+
+      if (currentLocals.length === 0 || currentOriginals.length === 0) return;
+
+      const changes: Promise<void>[] = [];
+
+      currentLocals.forEach(localStudent => {
+        const original = currentOriginals.find(s => s.studentProfileId === localStudent.studentProfileId);
+        if (!original) return;
+
+        const groupChanged = localStudent.groupId !== original.groupId;
+        const leaderChanged = localStudent.isLeader !== original.isLeader;
+
+        if (groupChanged) {
+          changes.push(groupService.assignStudentGroup(localStudent.studentProfileId, localStudent.groupId));
+        }
+
+        if (localStudent.isLeader && leaderChanged) {
+          changes.push(groupService.assignLeader(localStudent.groupId!, localStudent.studentProfileId).then(() => {}));
+        }
+      });
+
+      if (changes.length > 0) {
+        Promise.all(changes).catch(err => {
+          console.error("Fallback unmount save failed:", err);
+        });
+      }
+    };
+  }, []);
+
+  const handleCreateGroup = async (name: string) => {
+    try {
+      await groupService.createGroup({
+        classId: classData.id,
+        groupName: name
+      });
+      toast.success(`Đã tạo ${name} thành công!`);
+      await fetchData();
+    } catch (error: unknown) {
+      console.error(error);
+      const err = error as { response?: { data?: { message?: string } } };
+      const errMsg = err.response?.data?.message || "Không thể tạo tổ mới.";
+      toast.error(errMsg);
+      throw error;
     }
   };
 
+  const handleAssignLeader = async (groupId: number, studentProfileId: number) => {
+    // In-memory update
+    setLocalStudents(prev => prev.map(s => {
+      if (s.studentProfileId === studentProfileId) {
+        return { ...s, isLeader: true, groupId };
+      }
+      if (s.groupId === groupId && s.isLeader) {
+        return { ...s, isLeader: false };
+      }
+      return s;
+    }));
+    setSaveStatus("unsaved");
+    setIsActionModalOpen(false);
+    setSelectedStudent(null);
+  };
+
+  const handleMoveStudentGroup = async (studentProfileId: number, groupId: number | null) => {
+    // In-memory update
+    setLocalStudents(prev => prev.map(s => {
+      if (s.studentProfileId === studentProfileId) {
+        const groupName = groupId ? localGroups.find(g => g.id === groupId)?.groupName || null : null;
+        return {
+          ...s,
+          groupId,
+          groupName,
+          isLeader: groupId === null ? false : s.isLeader
+        };
+      }
+      return s;
+    }));
+    setSaveStatus("unsaved");
+    setIsActionModalOpen(false);
+    setSelectedStudent(null);
+  };
+
+  const handleConfigureStudent = (student: ClassStudentResponse) => {
+    setSelectedStudent(student);
+    setIsActionModalOpen(true);
+  };
+
+  const unassignedStudents = localStudents.filter(s => s.groupId === null);
+  
   return (
-    <div className="space-y-8 max-w-4xl mx-auto animate-fade-in">
+    <div className="space-y-6 max-w-6xl mx-auto animate-fade-in">
       {/* Header section */}
-      <div className="flex flex-col gap-1.5 border-b border-border pb-5">
-        <h1 className="text-3xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
-          <BookOpen className="text-primary w-8 h-8" />
-          Quản Lý Lớp Học
-        </h1>
-        <p className="text-neutral-500 text-sm">
-          Thông tin chi tiết và thiết lập cho lớp học chủ nhiệm hiện tại của bạn.
-        </p>
-      </div>
-
-      {/* Class Details Dashboard Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Main Details Card */}
-        <div className="md:col-span-2 bg-white rounded-2xl border border-border p-6 shadow-sm flex flex-col justify-between">
-          <div className="space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-light text-success-text border border-success/15 uppercase tracking-wide">
-                  Đang hoạt động
-                </span>
-                <h2 className="text-4xl font-extrabold text-neutral-900 tracking-tight mt-2.5">
-                  Lớp {classData.className}
-                </h2>
-              </div>
-              
-              <div className="p-3 bg-primary-light rounded-xl border border-primary-border/40">
-                <GraduationCap className="text-primary w-8 h-8" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-y-4 gap-x-6 border-t border-border/60 pt-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-neutral-100 rounded-lg text-neutral-500">
-                  <GraduationCap className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-neutral-400 font-bold uppercase tracking-wider">Khối lớp</p>
-                  <p className="text-sm font-semibold text-neutral-900">Khối {classData.grade}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-neutral-100 rounded-lg text-neutral-500">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-neutral-400 font-bold uppercase tracking-wider">Điểm mặc định tuần</p>
-                  <p className="text-sm font-semibold text-neutral-900">{classData.basePoint} điểm</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-neutral-100 rounded-lg text-neutral-500">
-                  <Building className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-neutral-400 font-bold uppercase tracking-wider">Trường học</p>
-                  <p className="text-sm font-semibold text-neutral-900 truncate max-w-[200px]" title={classData.schoolName}>
-                    {classData.schoolName || "Chưa kết nối"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-neutral-100 rounded-lg text-neutral-500">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] text-neutral-400 font-bold uppercase tracking-wider">Ngày tạo</p>
-                  <p className="text-sm font-semibold text-neutral-900">
-                    {new Date(classData.createdAt).toLocaleDateString("vi-VN", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Informational Panel */}
-        <div className="bg-primary-light/40 border border-primary-border/30 rounded-2xl p-6 flex flex-col justify-between">
-          <div className="space-y-4">
-            <h3 className="font-bold text-neutral-900 flex items-center gap-2">
-              <Info className="text-primary w-5 h-5" />
-              Lưu ý vận hành
-            </h3>
-            <ul className="space-y-3 text-sm text-neutral-600 leading-relaxed list-disc list-inside">
-              <li>Mỗi giáo viên chỉ được phép có duy nhất <strong>1 lớp học ACTIVE</strong> tại một thời điểm.</li>
-              <li>Điểm mặc định tuần được dùng làm điểm khởi đầu cho thi đua học sinh mỗi tuần mới.</li>
-              <li>Bạn có thể cấu hình mẫu sơ yếu lý lịch động để thu thập dữ liệu học sinh trong lớp.</li>
-            </ul>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Danger Zone */}
-      <div className="bg-danger-light/30 border border-danger/10 rounded-2xl p-6 space-y-4">
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-danger-light text-danger-text rounded-xl border border-danger/10">
-            <ShieldAlert className="w-6 h-6" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-neutral-900">Vùng nguy hiểm</h3>
-            <p className="text-sm text-neutral-600">
-              Kết thúc niên khóa hoặc lớp học hiện tại. Hành động này sẽ đóng băng toàn bộ thông tin.
-            </p>
-          </div>
-        </div>
-
-        <div className="border-t border-danger/5 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <p className="text-xs text-neutral-500 max-w-lg">
-            Sau khi lớp học kết thúc (ENDED), tất cả các bảng điểm thi đua, mẫu sơ yếu lý lịch và danh sách học sinh
-            sẽ bị khóa dưới dạng chỉ đọc. Bạn sẽ không thể sửa đổi thông tin nhưng có thể tạo một lớp học mới.
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
+            <BookOpen className="text-primary w-8 h-8" />
+            Lớp {classData.className} — Quản lý
+          </h1>
+          <p className="text-neutral-500 text-sm">
+            Quản lý sơ đồ Tổ học sinh, gán Tổ trưởng và cấu hình lớp học.
           </p>
-          
-          <Button
-            variant="destructive"
-            onClick={() => setIsConfirmOpen(true)}
-            className="w-full sm:w-auto font-semibold cursor-pointer shadow-sm"
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex bg-neutral-100 p-1 rounded-xl border border-border">
+          <button
+            type="button"
+            onClick={() => setActiveTab("roster")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+              activeTab === "roster"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
           >
-            Kết thúc lớp học
-          </Button>
+            Sơ đồ Tổ & Học sinh
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("settings")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all cursor-pointer ${
+              activeTab === "settings"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-500 hover:text-neutral-900"
+            }`}
+          >
+            Thiết lập chung
+          </button>
         </div>
       </div>
 
-      {/* Confirmation Dialog */}
-      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-danger-text">
-              <ShieldAlert className="w-5 h-5 shrink-0" />
-              Xác nhận kết thúc lớp học?
-            </DialogTitle>
-            <DialogDescription className="text-neutral-500 text-sm mt-2">
-              Bạn có chắc chắn muốn kết thúc lớp học <strong>{classData.className}</strong>? 
-              Hành động này sẽ khóa toàn bộ dữ liệu hiện tại và <strong>không thể hoàn tác</strong>. 
-              Bạn sẽ có thể bắt đầu tạo một lớp học mới ngay sau đó.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-6 flex sm:justify-end gap-2 border-t border-border pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsConfirmOpen(false)}
-              disabled={isEnding}
-              className="cursor-pointer"
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleEndClass}
-              isLoading={isEnding}
-              className="cursor-pointer"
-            >
-              Xác nhận kết thúc
-            </Button>
+      {activeTab === "roster" && (
+        <div className="space-y-6">
+          {/* Actions Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-border shadow-sm">
+            <div className="flex flex-wrap gap-4 md:gap-6 text-sm text-neutral-500 items-center">
+              <div>
+                Tổng học sinh: <span className="font-bold text-neutral-800">{localStudents.length}</span>
+              </div>
+              <div>
+                Số Tổ học tập: <span className="font-bold text-neutral-800">{localGroups.length}</span>
+              </div>
+              {unassignedStudents.length > 0 && (
+                <div>
+                  Chưa chia tổ: <span className="font-bold text-neutral-800">{unassignedStudents.length}</span>
+                </div>
+              )}
+              {/* Save Status Indicator */}
+              <div className="flex items-center gap-1.5 pl-2 border-l border-neutral-200">
+                {saveStatus === "idle" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-neutral-400">
+                    <Cloud className="w-3.5 h-3.5" />
+                    Đã đồng bộ
+                  </span>
+                )}
+                {saveStatus === "unsaved" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Có thay đổi chưa lưu (Lưu tự động...)
+                  </span>
+                )}
+                {saveStatus === "saving" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Đang tự động lưu...
+                  </span>
+                )}
+                {saveStatus === "saved" && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-success-text">
+                    <Check className="w-3.5 h-3.5 text-success-text" />
+                    Đã lưu mọi thay đổi
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {saveStatus === "unsaved" && (
+                <Button
+                  onClick={() => saveChanges(localStudents, students)}
+                  className="font-semibold text-xs py-2 shadow-sm cursor-pointer border-neutral-300"
+                  variant="outline"
+                  size="sm"
+                >
+                  Lưu ngay
+                </Button>
+              )}
+              <Button
+                onClick={() => setIsCreateGroupOpen(true)}
+                className="flex items-center gap-1.5 font-semibold text-xs py-2 shadow-sm cursor-pointer"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" />
+                Tạo Tổ Mới
+              </Button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {isDataLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-border shadow-sm">
+              <Loader2 className="animate-spin text-primary w-8 h-8 mb-3" />
+              <p className="text-neutral-500 text-sm font-medium">Đang tải danh sách tổ và học sinh...</p>
+            </div>
+          ) : (
+            <div className="flex flex-row gap-6 items-start overflow-x-auto pb-4 min-h-[500px]">
+              
+              {/* Kanban Column: Unassigned */}
+              {unassignedStudents.length > 0 && (
+                <GroupColumn
+                  title="Chưa phân tổ"
+                  students={unassignedStudents}
+                  onConfigureStudent={handleConfigureStudent}
+                />
+              )}
+
+              {/* Kanban Columns: Groups */}
+              {localGroups.map(group => {
+                const groupStudents = localStudents.filter(s => s.groupId === group.id);
+                return (
+                  <GroupColumn
+                    key={group.id}
+                    title={group.groupName}
+                    students={groupStudents}
+                    group={group}
+                    onConfigureStudent={handleConfigureStudent}
+                  />
+                );
+              })}
+
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "settings" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <ClassDetailsCard classData={classData} />
+          
+          {/* Informational Panel */}
+          <div className="bg-primary-light/40 border border-primary-border/30 rounded-2xl p-6 flex flex-col justify-between">
+            <div className="space-y-4">
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Info className="text-primary w-5 h-5" />
+                Lưu ý vận hành
+              </h3>
+              <ul className="space-y-3 text-sm text-neutral-600 leading-relaxed list-disc list-inside">
+                <li>Mỗi giáo viên chỉ được phép có duy nhất <strong>1 lớp học ACTIVE</strong> tại một thời điểm.</li>
+                <li>Điểm mặc định tuần được dùng làm điểm khởi đầu cho thi đua học sinh mỗi tuần mới.</li>
+                <li>Bạn có thể cấu hình mẫu sơ yếu lý lịch động để thu thập dữ liệu học sinh trong lớp.</li>
+              </ul>
+            </div>
+          </div>
+
+          <DangerZoneCard classData={classData} onClassEnded={onClassEnded} />
+        </div>
+      )}
+
+      {/* Dialogs */}
+      <CreateGroupDialog
+        isOpen={isCreateGroupOpen}
+        onOpenChange={setIsCreateGroupOpen}
+        onCreate={handleCreateGroup}
+        className={classData.className}
+      />
+
+      <StudentActionDialog
+        isOpen={isActionModalOpen}
+        onOpenChange={setIsActionModalOpen}
+        student={selectedStudent}
+        groups={localGroups}
+        onAssignLeader={handleAssignLeader}
+        onMoveGroup={handleMoveStudentGroup}
+        isUpdating={false}
+      />
     </div>
   );
 }

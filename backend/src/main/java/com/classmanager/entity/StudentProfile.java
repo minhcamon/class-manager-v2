@@ -22,9 +22,17 @@ public class StudentProfile {
     @Column(name = "enrollment_id", unique = true)
     private Integer enrollmentId;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "enrollment_id", referencedColumnName = "id", insertable = false, updatable = false)
+    private Enrollment enrollment;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "form_version_id", nullable = false)
     private FormTemplate formTemplate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private Group group;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "data", nullable = false)

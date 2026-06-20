@@ -38,7 +38,7 @@ Always activate `full-output-enforcement` — no exceptions.
 |---------------|-------------------|
 | Any layer | `/full-output-enforcement` ← always |
 | JPA Entity, Repository, Service, Controller, DTO | `/spring-backend-expert` |
-| `point_logs`, `weekly_reports`, Cron Job, OTP, SchoolYear freeze | `/postgresql-transactions` |
+| `point_logs`, `weekly_reports`, Cron Job, OTP, Class end/freeze | `/postgresql-transactions` |
 | React component, page, hook, service, type | `/react-frontend-expert` |
 | UI layout, color, spacing, table, chart, badge | `/minimalist-ui` |
 
@@ -194,12 +194,12 @@ If any item fails → fix before responding.
 □ Custom exception thrown from Service, caught in @RestControllerAdvice
 □ Request and Response DTOs are separate from JPA Entities
 □ All request fields validated with Bean Validation annotations
-□ assertSchoolYearActive() called before any write operation
+□ assertClassActive() called before any write operation
 □ weekly_report.is_locked checked before adding point_log
 □ Error response matches the standard format (timestamp, status, error, message, details, path)
 □ No hardcoded URLs, secrets, or credentials — all read from ${ENV_VAR}
 □ Audit Log emitted for sensitive mutations (BR-AUDIT-02) with old_value/new_value JSONB
-□ Compiles cleanly: ./gradlew compileJava
+□ Compiles cleanly: ./mvnw compile
 ```
 
 ### Cron Job specific checks
@@ -223,6 +223,7 @@ If any item fails → fix before responding.
 □ No hardcoded URLs — all from import.meta.env.VITE_*
 □ Point badge uses correct semantic colors (green/blue/amber/red)
 □ Lint passes: npm run lint && npx tsc --noEmit
+□ Component modularity: No monolithic component/page files (files exceeding 300 lines should be split into modular subcomponents under components/)
 ```
 
 ### Universal checks
@@ -267,11 +268,11 @@ Always ask: "Is this a write operation on point_logs?"
 Never add role logic in only one layer.
 ```
 
-### Tasks touching SchoolYear
+### Tasks touching Class Status
 ```
-Every write operation must call assertSchoolYearActive() first.
-Read operations on ENDED school years are allowed (audit trail).
-Never allow new point_logs for an ENDED school year.
+Every write operation must call assertClassActive() first.
+Read operations on ENDED classes are allowed (audit trail).
+Never allow new point_logs for an ENDED class.
 ```
 
 ### Refactoring tasks

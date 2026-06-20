@@ -10,6 +10,7 @@ import {
   PlusCircle,
   BookOpen,
   Loader2,
+  Award,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
 import classService from "@/services/classService";
@@ -37,17 +38,30 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
   useEffect(() => {
     try {
       localStorage.setItem(SIDEBAR_KEY, String(collapsed));
-    } catch {}
+    } catch (err) {
+      console.debug("Failed to save sidebar state:", err);
+    }
   }, [collapsed]);
 
   // ── Fetch active class so sidebar always knows the class ────────────
-  const [activeClass, setActiveClass] = useState<Class | null>(null);
-  const [classLoading, setClassLoading] = useState(true);
+  const [activeClass, setActiveClass] = useState<Class | null>(() => {
+    try {
+      const cached = sessionStorage.getItem("active_class");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [classLoading, setClassLoading] = useState(() => {
+    if (location.pathname === "/teacher/classes/create") {
+      return false;
+    }
+    return !activeClass;
+  });
 
   useEffect(() => {
     let cancelled = false;
     const fetch = async () => {
-      setClassLoading(true);
       try {
         const cls = await classService.getActiveClass();
         if (!cancelled) setActiveClass(cls);
@@ -63,7 +77,7 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
 
   // ── Derive classId from URL or active class ─────────────────────────
   const classIdMatch = location.pathname.match(/\/teacher\/classes\/([^/]+)/);
-  const classIdFromUrl = classIdMatch ? classIdMatch[1] : null;
+  const classIdFromUrl = classIdMatch && !isNaN(Number(classIdMatch[1])) ? classIdMatch[1] : null;
   const classId = classIdFromUrl || (activeClass?.id ? String(activeClass.id) : null);
 
   // ── Build nav items ─────────────────────────────────────────────────
@@ -86,6 +100,11 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
           label: "Quản lý học sinh",
           path: `/teacher/classes/${classId}/management`,
           icon: Users,
+        },
+        {
+          label: "Chấm điểm thi đua",
+          path: `/teacher/classes/${classId}/daily-canvas`,
+          icon: Award,
         },
         {
           label: "Mẫu sơ yếu",
@@ -223,7 +242,12 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
                   </p>
                   <Link
                     to="/teacher/classes/create"
-                    className="flex items-center gap-3 px-3 py-2.5 w-full text-sm font-semibold rounded-xl text-primary bg-primary-light hover:bg-primary/10 transition-all cursor-pointer"
+                    className={`flex items-center gap-3 px-3 py-2.5 w-full text-sm font-semibold rounded-xl transition-all cursor-pointer
+                      ${isActive("/teacher/classes/create")
+                        ? "bg-primary-light text-primary"
+                        : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                      }
+                    `}
                   >
                     <PlusCircle className="w-[18px] h-[18px]" />
                     Tạo lớp mới

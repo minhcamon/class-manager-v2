@@ -15,22 +15,17 @@ import {
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import classService from "@/services/classService";
+import groupService from "@/services/groupService";
+import studentProfileService from "@/services/studentProfileService";
+import pointService from "@/services/pointService";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Class } from "@/types/class";
+import type { PointLog } from "@/types/pointLog";
+import Button from "@/components/ui/Button";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type ScorePeriod = "week" | "month" | "semester" | "year";
 type Tab = "scores" | "leaderboard";
-
-interface ScoreEntry {
-  id: number;
-  criterion: string;
-  plus: number;
-  minus: number;
-  total: number;
-  note?: string;
-  date: string;
-}
 
 interface LeaderboardEntry {
   rank: number;
@@ -40,14 +35,6 @@ interface LeaderboardEntry {
   trend: "up" | "down" | "same";
   isCurrentUser?: boolean;
 }
-
-// ─── Mock data (placeholder until backend APIs exist) ────────────────────────
-const MOCK_SCORES: Record<ScorePeriod, ScoreEntry[]> = {
-  week: [],
-  month: [],
-  semester: [],
-  year: [],
-};
 
 const MOCK_LEADERBOARD: LeaderboardEntry[] = [];
 
@@ -71,10 +58,48 @@ const PERIOD_LABELS: Record<ScorePeriod, string> = {
   year: "Năm học",
 };
 
-function ScoreTab({ classData }: { classData: Class }) {
+function ScoreTab({ classData, studentProfileId }: { classData: Class; studentProfileId?: number }) {
   const [period, setPeriod] = useState<ScorePeriod>("week");
-  const scores = MOCK_SCORES[period];
-  const total = scores.reduce((acc, s) => acc + s.total, 0);
+  const [allLogs, setAllLogs] = useState<PointLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!studentProfileId) {
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    pointService.getPointLogs(studentProfileId)
+      .then((logs) => setAllLogs(logs))
+      .catch(() => setAllLogs([]))
+      .finally(() => setIsLoading(false));
+  }, [studentProfileId]);
+
+  // Filter logs based on selected period
+  const now = new Date();
+  const filteredLogs = allLogs.filter((log) => {
+    const logDate = new Date(log.weekStartDate);
+    if (period === "week") {
+      // Same week as now (Monday-based)
+      const startOfWeek = new Date(now);
+      const day = now.getDay();
+      startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      return logDate >= startOfWeek && logDate <= endOfWeek;
+    } else if (period === "month") {
+      return logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear();
+    } else if (period === "semester") {
+      const currentMonth = now.getMonth();
+      const semesterStart = currentMonth < 6 ? 0 : 6; // Jan-Jun or Jul-Dec
+      return logDate.getFullYear() === now.getFullYear() && logDate.getMonth() >= semesterStart && logDate.getMonth() < semesterStart + 6;
+    } else {
+      return logDate.getFullYear() === now.getFullYear();
+    }
+  });
+
+  const totalDelta = filteredLogs.reduce((acc, log) => acc + log.pointValue, 0);
 
   return (
     <div className="space-y-5">
@@ -107,21 +132,25 @@ function ScoreTab({ classData }: { classData: Class }) {
           <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">
             Điều chỉnh
           </p>
-          <p className={`text-3xl font-black ${total >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-            {total >= 0 ? `+${total}` : total}
+          <p className={`text-3xl font-black ${totalDelta >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            {totalDelta >= 0 ? `+${totalDelta}` : totalDelta}
           </p>
         </div>
         <div className="bg-primary rounded-2xl p-5 text-center">
           <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-1">
             Tổng điểm
           </p>
-          <p className="text-3xl font-black text-white">{classData.basePoint + total}</p>
+          <p className="text-3xl font-black text-white">{classData.basePoint + totalDelta}</p>
         </div>
       </div>
 
       {/* Score table */}
       <div className="bg-white rounded-2xl border border-border overflow-hidden shadow-sm">
-        {scores.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="animate-spin text-primary w-6 h-6" />
+          </div>
+        ) : filteredLogs.length === 0 ? (
           <EmptyState
             icon={CalendarDays}
             title="Chưa có dữ liệu điểm"
@@ -133,26 +162,22 @@ function ScoreTab({ classData }: { classData: Class }) {
               <thead>
                 <tr className="bg-neutral-50 border-b border-border">
                   <th className="text-left px-5 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest w-8">STT</th>
-                  <th className="text-left px-5 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Tiêu chí</th>
-                  <th className="text-center px-4 py-3.5 text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Cộng</th>
-                  <th className="text-center px-4 py-3.5 text-[10px] font-bold text-red-500 uppercase tracking-widest">Trừ</th>
-                  <th className="text-center px-4 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Tổng</th>
-                  <th className="text-left px-5 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Ghi chú</th>
+                  <th className="text-left px-5 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Lý do</th>
+                  <th className="text-center px-4 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Điểm</th>
+                  <th className="text-left px-5 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Ghi bởi</th>
                   <th className="text-left px-5 py-3.5 text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Ngày</th>
                 </tr>
               </thead>
               <tbody>
-                {scores.map((s, i) => (
-                  <tr key={s.id} className="border-b border-border/50 hover:bg-neutral-50/60 transition-colors">
+                {filteredLogs.map((log, i) => (
+                  <tr key={log.id} className="border-b border-border/50 hover:bg-neutral-50/60 transition-colors">
                     <td className="px-5 py-3.5 text-neutral-400 font-medium">{i + 1}</td>
-                    <td className="px-5 py-3.5 font-semibold text-neutral-800">{s.criterion}</td>
-                    <td className="px-4 py-3.5 text-center font-bold text-emerald-600">{s.plus > 0 ? `+${s.plus}` : "—"}</td>
-                    <td className="px-4 py-3.5 text-center font-bold text-red-500">{s.minus > 0 ? `-${s.minus}` : "—"}</td>
-                    <td className={`px-4 py-3.5 text-center font-bold ${s.total >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                      {s.total >= 0 ? `+${s.total}` : s.total}
+                    <td className="px-5 py-3.5 font-semibold text-neutral-800">{log.reason}</td>
+                    <td className={`px-4 py-3.5 text-center font-bold ${log.pointValue >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      {log.pointValue >= 0 ? `+${log.pointValue}` : log.pointValue}
                     </td>
-                    <td className="px-5 py-3.5 text-neutral-500 text-xs">{s.note || "—"}</td>
-                    <td className="px-5 py-3.5 text-neutral-400 text-xs">{s.date}</td>
+                    <td className="px-5 py-3.5 text-neutral-500 text-xs">{log.createdByName}</td>
+                    <td className="px-5 py-3.5 text-neutral-400 text-xs">{log.weekStartDate}</td>
                   </tr>
                 ))}
               </tbody>
@@ -165,6 +190,7 @@ function ScoreTab({ classData }: { classData: Class }) {
 }
 
 function LeaderboardTab({ currentStudentId }: { currentStudentId?: number }) {
+  void currentStudentId;
   const entries = MOCK_LEADERBOARD;
   const top3 = entries.slice(0, 3);
   const rest = entries.slice(3);
@@ -280,6 +306,9 @@ export default function StudentClassOverviewPage() {
 
   const [classData, setClassData] = useState<Class | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGroupLeader, setIsGroupLeader] = useState(false);
+  const [ledGroupName, setLedGroupName] = useState("");
+  const [myStudentProfileId, setMyStudentProfileId] = useState<number | undefined>(undefined);
 
   // Derive active tab from URL search param
   const rawTab = searchParams.get("tab");
@@ -294,14 +323,31 @@ export default function StudentClassOverviewPage() {
   };
 
   useEffect(() => {
-    const fetchClass = async () => {
+    const fetchClassAndGroup = async () => {
       if (!classId) return;
       setIsLoading(true);
       try {
-        const data = await classService.getClassById(parseInt(classId));
+        const [data, groupsList, studentsList] = await Promise.all([
+          classService.getClassById(parseInt(classId)),
+          groupService.getClassGroups(parseInt(classId)),
+          studentProfileService.getClassStudents(parseInt(classId))
+        ]);
         setClassData(data);
+
+        // Check if student is a group leader
+        if (user?.id) {
+          const myStudent = studentsList.find(s => s.userId === user.id);
+          if (myStudent) {
+            setMyStudentProfileId(myStudent.studentProfileId);
+            const myLedGroup = groupsList.find(g => g.leaderStudentId === myStudent.studentProfileId);
+            if (myLedGroup) {
+              setIsGroupLeader(true);
+              setLedGroupName(myLedGroup.groupName);
+            }
+          }
+        }
       } catch (error) {
-        console.error("Failed to fetch class:", error);
+        console.error("Failed to fetch class and groups:", error);
         if (isAxiosError(error) && error.response?.status === 404) {
           sessionStorage.removeItem("active_class");
           toast.error("Lớp học không tồn tại.");
@@ -313,8 +359,8 @@ export default function StudentClassOverviewPage() {
         setIsLoading(false);
       }
     };
-    fetchClass();
-  }, [classId, navigate]);
+    fetchClassAndGroup();
+  }, [classId, navigate, user?.id]);
 
   if (isLoading) {
     return (
@@ -420,8 +466,31 @@ export default function StudentClassOverviewPage() {
 
       {/* ── Tab content ───────────────────────────────────────────────────── */}
       <div className="px-6 lg:px-10 py-8 max-w-5xl mx-auto">
+        {isGroupLeader && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+                <Trophy className="w-5 h-5 text-amber-600 fill-amber-100" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-amber-900">Quyền hạn Tổ trưởng</p>
+                <p className="text-xs text-amber-700">
+                  Bạn là Tổ trưởng của <strong>{ledGroupName}</strong>. Bạn có quyền chấm điểm thi đua cho các tổ viên trong tổ.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(`/student/class/${classId}/daily-canvas`)}
+              className="border-amber-300 text-amber-900 hover:bg-amber-100 font-semibold cursor-pointer w-full sm:w-auto text-center shrink-0"
+            >
+              Chấm điểm thi đua
+            </Button>
+          </div>
+        )}
         {activeTab === "scores" ? (
-          <ScoreTab classData={classData} />
+          <ScoreTab classData={classData} studentProfileId={myStudentProfileId} />
         ) : (
           <LeaderboardTab currentStudentId={user?.id} />
         )}

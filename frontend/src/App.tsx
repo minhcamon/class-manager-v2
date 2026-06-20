@@ -13,6 +13,7 @@ import StudentDashboard from "./views/dashboard/StudentDashboard";
 import TeacherClassesList from "./views/class/TeacherClassesList";
 import TeacherClassOverview from "./views/class/TeacherClassOverview";
 import TeacherClassManagement from "./views/class/TeacherClassManagement";
+import DailyCanvasView from "./views/class/DailyCanvasView";
 import TeacherClassConfiguration from "./views/class/TeacherClassConfiguration";
 import StudentClassOverview from "./views/class/StudentClassOverview";
 import ProfileTemplateBuilder from "./views/form/ProfileTemplateBuilder";
@@ -69,6 +70,12 @@ function App() {
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/student/class/:classId" element={<StudentClassOverview />} />
             <Route path="/student/class/:classId/profile" element={<StudentProfileView />} />
+            <Route path="/student/class/:classId/daily-canvas" element={<DailyCanvasView />} />
+          </Route>
+
+          {/* Shared Routes (Teacher + Student) */}
+          <Route element={<ProtectedRoute allowedRoles={["TEACHER", "STUDENT"]} />}>
+            <Route path="/teacher/classes/:classId/daily-canvas" element={<DailyCanvasView />} />
           </Route>
 
           {/* Catch-all 404 Route */}

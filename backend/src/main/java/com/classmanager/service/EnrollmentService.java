@@ -11,6 +11,10 @@ import com.classmanager.exception.CustomException;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.EnrollmentRepository;
 import com.classmanager.repository.UserRepository;
+import com.classmanager.repository.FormTemplateRepository;
+import com.classmanager.repository.StudentProfileRepository;
+import com.classmanager.entity.StudentProfile;
+import com.classmanager.entity.FormTemplate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +29,8 @@ public class EnrollmentService {
     private final ClassRepository classRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FormTemplateRepository formTemplateRepository;
+    private final StudentProfileRepository studentProfileRepository;
 
     @Transactional
     public EnrollmentResponse joinClass(Long studentId, JoinClassRequest request) {
@@ -49,6 +55,26 @@ public class EnrollmentService {
                 .build();
 
         Enrollment savedEnrollment = enrollmentRepository.save(enrollment);
+
+        // Auto-create StudentProfile with active FormTemplate (or create default if none exists)
+        FormTemplate activeForm = formTemplateRepository.findByClassEntityIdAndIsActiveTrue(classEntity.getId())
+                .orElseGet(() -> {
+                    FormTemplate defaultForm = FormTemplate.builder()
+                            .classEntity(classEntity)
+                            .title("Thông tin học sinh")
+                            .structure("[]")
+                            .version(1)
+                            .isActive(true)
+                            .build();
+                    return formTemplateRepository.save(defaultForm);
+                });
+
+        StudentProfile profile = StudentProfile.builder()
+                .enrollmentId(savedEnrollment.getId())
+                .formTemplate(activeForm)
+                .data("{}")
+                .build();
+        studentProfileRepository.save(profile);
 
         return EnrollmentResponse.builder()
                 .id(savedEnrollment.getId())

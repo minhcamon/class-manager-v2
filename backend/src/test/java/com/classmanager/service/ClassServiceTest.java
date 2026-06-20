@@ -11,6 +11,8 @@ import com.classmanager.exception.CustomException;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.UserRepository;
 import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.repository.FormTemplateRepository;
+import com.classmanager.entity.FormTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +39,9 @@ class ClassServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private FormTemplateRepository formTemplateRepository;
 
     @InjectMocks
     private ClassService classService;
@@ -66,6 +71,11 @@ class ClassServiceTest {
             ClassEntity entity = invocation.getArgument(0);
             entity.setId(1);
             return entity;
+        });
+        when(formTemplateRepository.save(any(FormTemplate.class))).thenAnswer(invocation -> {
+            FormTemplate form = invocation.getArgument(0);
+            form.setId(1);
+            return form;
         });
 
         ClassResponse response = classService.createClass(1L, request);

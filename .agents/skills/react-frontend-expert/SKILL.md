@@ -14,6 +14,7 @@ Ensure ClassManager Frontend is written in strict TypeScript, avoids using `any`
 - All React files must be placed in `frontend/src/`
 - Read `docs/srs/classmanager_srs_full.md` API Endpoints section before writing service calls
 - Check if proxy `/api` in `vite.config.ts` points to `http://localhost:8080`
+- **Component File Size Limit**: NEVER write monolithic component/page files. Keep components focused, single-purpose, and small (under 250-300 lines). Proactively extract subcomponents (such as dialogs, modals, card items, forms, filter buttons, list items) into the module's `components/` directory.
 
 **Standard Folder Structure:**
 New Frontend files must be organized in the designated directories under `frontend/src/`:
@@ -329,4 +330,6 @@ npx tsc --noEmit
 ❌ Using // TODO, placeholder comments — write complete implementations
 ❌ Using arbitrary colors for badges — only use the defined semantic colors
 ❌ Calling APIs in useEffect without cleanup (memory leak)
+❌ Creating monolithic components (React files exceeding 300 lines) — extract subcomponents (cards, modals, forms) early
+
 ```

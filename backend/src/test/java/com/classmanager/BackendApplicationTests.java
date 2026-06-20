@@ -13,6 +13,7 @@ class BackendApplicationTests {
     private ClassRepository classRepository;
 
     @Test
+    @org.springframework.transaction.annotation.Transactional
     void contextLoads() {
         classRepository.findAll().forEach(c -> System.out.println("CLASS_DB_INSPECT ID: " + c.getId() + ", NAME: " + c.getClassName() + ", TEACHER: " + c.getTeacher().getUsername()));
     }
