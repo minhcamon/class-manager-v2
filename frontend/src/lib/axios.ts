@@ -2,7 +2,8 @@ import axios from "axios";
 import { getTokens } from "@/utils/utils";
 
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL as string) || "/api/v1",
+  baseURL: (import.meta.env.VITE_API_URL as string) || 
+           (import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api/v1` : "/api/v1"),
   withCredentials: true
 });
 
