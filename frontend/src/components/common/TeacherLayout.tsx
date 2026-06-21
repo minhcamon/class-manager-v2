@@ -1,6 +1,7 @@
 import { type ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
+import Logo from "./Logo";
 import {
   Home,
   Users,
@@ -91,32 +92,32 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
 
   const classNavItems = classId
     ? [
-        {
-          label: "Tổng quan",
-          path: `/teacher/classes/${classId}`,
-          icon: Home,
-        },
-        {
-          label: "Quản lý học sinh",
-          path: `/teacher/classes/${classId}/management`,
-          icon: Users,
-        },
-        {
-          label: "Chấm điểm thi đua",
-          path: `/teacher/classes/${classId}/daily-canvas`,
-          icon: Award,
-        },
-        {
-          label: "Mẫu sơ yếu",
-          path: `/teacher/classes/${classId}/profile-template`,
-          icon: FileText,
-        },
-        {
-          label: "Cấu hình lớp",
-          path: `/teacher/classes/${classId}/configuration`,
-          icon: Settings,
-        },
-      ]
+      {
+        label: "Tổng quan",
+        path: `/teacher/classes/${classId}`,
+        icon: Home,
+      },
+      {
+        label: "Quản lý học sinh",
+        path: `/teacher/classes/${classId}/management`,
+        icon: Users,
+      },
+      {
+        label: "Chấm điểm thi đua",
+        path: `/teacher/classes/${classId}/daily-canvas`,
+        icon: Award,
+      },
+      {
+        label: "Mẫu sơ yếu",
+        path: `/teacher/classes/${classId}/profile-template`,
+        icon: FileText,
+      },
+      {
+        label: "Cấu hình lớp",
+        path: `/teacher/classes/${classId}/configuration`,
+        icon: Settings,
+      },
+    ]
     : [];
 
   const isActive = (path: string) => location.pathname === path;
@@ -135,17 +136,15 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
         title={collapsed ? item.label : undefined}
         className={`group flex items-center gap-3 rounded-xl transition-all duration-150 cursor-pointer select-none
           ${collapsed ? "justify-center px-0 py-3 w-10 h-10 mx-auto" : "px-3 py-2.5 w-full"}
-          ${
-            active
-              ? "bg-primary-light text-primary"
-              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+          ${active
+            ? "bg-primary-light text-primary"
+            : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
           }
         `}
       >
         <item.icon
-          className={`shrink-0 transition-transform ${
-            collapsed ? "w-5 h-5" : "w-[18px] h-[18px]"
-          } ${active ? "text-primary" : ""}`}
+          className={`shrink-0 transition-transform ${collapsed ? "w-5 h-5" : "w-[18px] h-[18px]"
+            } ${active ? "text-primary" : ""}`}
         />
         {!collapsed && (
           <span className="text-sm font-semibold truncate">{item.label}</span>
@@ -158,38 +157,25 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-left">
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <aside
-        className={`bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0 transition-all duration-300 ease-in-out ${
-          collapsed ? "w-[68px]" : "w-64"
-        }`}
+        className={`bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0 transition-all duration-300 ease-in-out ${collapsed ? "w-[68px]" : "w-64"
+          }`}
       >
         {/* Top: Logo + Toggle + Nav */}
         <div className="flex flex-col overflow-hidden">
           {/* Logo area */}
           <div
-            className={`flex items-center h-[64px] px-4 border-b border-border shrink-0 ${
-              collapsed ? "justify-center" : "justify-between"
-            }`}
+            className={`flex items-center h-[64px] px-4 border-b border-border shrink-0 ${collapsed ? "justify-center" : "justify-between"
+              }`}
           >
             {!collapsed && (
-              <Link
-                to="/teacher/dashboard"
-                className="flex items-center gap-2.5 min-w-0"
-              >
-                <div className="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center shrink-0">
-                  <span className="text-white font-extrabold text-base">C</span>
-                </div>
-                <span className="font-extrabold text-neutral-900 tracking-tight text-[17px] truncate">
-                  ClassManager
-                </span>
-              </Link>
+              <Logo imgSize="w-6 h-6" to="/teacher/dashboard" />
             )}
 
             <button
               onClick={() => setCollapsed((v) => !v)}
               title={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-              className={`p-2 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-all active:scale-95 cursor-pointer shrink-0 ${
-                collapsed ? "w-10 h-10 flex items-center justify-center" : ""
-              }`}
+              className={`p-2 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-all active:scale-95 cursor-pointer shrink-0 ${collapsed ? "w-10 h-10 flex items-center justify-center" : ""
+                }`}
             >
               <PanelLeft className="w-[18px] h-[18px]" />
             </button>
@@ -260,9 +246,8 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
 
         {/* Bottom: User info + Logout */}
         <div
-          className={`border-t border-border py-3 px-2 flex flex-col gap-2 shrink-0 ${
-            collapsed ? "items-center" : ""
-          }`}
+          className={`border-t border-border py-3 px-2 flex flex-col gap-2 shrink-0 ${collapsed ? "items-center" : ""
+            }`}
         >
           {/* User avatar / info */}
           {collapsed ? (

@@ -39,6 +39,12 @@ interface LogoProps {
    * - 'dark': bg-zinc-950
    */
   cBoxBg?: "primary" | "dark";
+
+  /**
+   * Optional Tailwind sizing class for the logo image (e.g. 'w-8 h-8').
+   * Defaults to 'w-8 h-8'.
+   */
+  imgSize?: string;
 }
 
 export default function Logo({
@@ -48,6 +54,7 @@ export default function Logo({
   className = "",
   textClassName = "",
   cBoxBg = "primary",
+  imgSize = "w-8 h-8",
 }: LogoProps) {
   // Determine root container CSS classes if not overridden
   const getDefaultContainerClass = () => {
@@ -81,7 +88,7 @@ export default function Logo({
 
       return (
         <>
-          <img src="/class-manager-logo.png" alt="ClassManager Logo" className="w-8 h-8 object-contain shrink-0" />
+          <img src="/class-manager-logo.png" alt="ClassManager Logo" className={`${imgSize} object-contain shrink-0`} />
           <span className={textClassName || innerTextClass || "font-bold text-neutral-900 tracking-tight"}>
             ClassManager
           </span>
@@ -92,8 +99,8 @@ export default function Logo({
     // Default: 'graduation'
     return (
       <>
-        <img src="/class-manager-favicon.png" alt="ClassManager Logo" className="w-10 h-10 object-contain shrink-0" />
-        <span className={textClassName || "font-extrabold text-neutral-900 tracking-tight text-xl"}>
+        <img src="/class-manager-favicon.png" alt="ClassManager Logo" className={`${imgSize} object-contain shrink-0`} />
+        <span className={textClassName || "font-extrabold text-neutral-900 tracking-tight text-[17px]"}>
           ClassManager
         </span>
       </>

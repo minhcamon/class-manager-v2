@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
 import studentProfileService from "@/services/studentProfileService";
+import Logo from "./Logo";
 
 interface StudentLayoutProps {
   children: ReactNode;
@@ -126,38 +127,25 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans text-left">
       {/* Sidebar */}
       <aside
-        className={`bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0 transition-all duration-300 ease-in-out ${
-          collapsed ? "w-[68px]" : "w-64"
-        }`}
+        className={`bg-white border-r border-border flex flex-col justify-between shrink-0 h-screen sticky top-0 transition-all duration-300 ease-in-out ${collapsed ? "w-[68px]" : "w-64"
+          }`}
       >
         {/* Top: Logo + Toggle */}
         <div className="flex flex-col overflow-hidden">
           {/* Logo area */}
           <div
-            className={`flex items-center h-[64px] px-4 border-b border-border shrink-0 ${
-              collapsed ? "justify-center" : "justify-between"
-            }`}
+            className={`flex items-center h-[64px] px-4 border-b border-border shrink-0 ${collapsed ? "justify-center" : "justify-between"
+              }`}
           >
             {!collapsed && (
-              <Link
-                to={`/student/class/${classId}`}
-                className="flex items-center gap-2.5 min-w-0"
-              >
-                <div className="w-8 h-8 bg-primary rounded-[8px] flex items-center justify-center shrink-0">
-                  <span className="text-white font-extrabold text-base">C</span>
-                </div>
-                <span className="font-extrabold text-neutral-900 tracking-tight text-[17px] truncate">
-                  ClassManager
-                </span>
-              </Link>
+              <Logo imgSize="w-6 h-6" to={`/student/class/${classId}`} />
             )}
 
             <button
               onClick={() => setCollapsed((v) => !v)}
               title={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-              className={`p-2 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-all active:scale-95 cursor-pointer shrink-0 ${
-                collapsed ? "w-10 h-10 flex items-center justify-center" : ""
-              }`}
+              className={`p-2 rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 transition-all active:scale-95 cursor-pointer shrink-0 ${collapsed ? "w-10 h-10 flex items-center justify-center" : ""
+                }`}
             >
               <PanelLeft className="w-[18px] h-[18px]" />
             </button>
@@ -174,25 +162,22 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
                   title={collapsed ? item.label : undefined}
                   className={`group flex items-center gap-3 rounded-xl transition-all duration-150 cursor-pointer select-none
                     ${collapsed ? "justify-center px-0 py-3 w-10 h-10 mx-auto" : "px-3 py-2.5 w-full"}
-                    ${
-                      active
-                        ? item.label === "Chấm điểm thi đua"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-primary-light text-primary"
-                        : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+                    ${active
+                      ? item.label === "Chấm điểm thi đua"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-primary-light text-primary"
+                      : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
                     }
                   `}
                 >
                   <item.icon
-                    className={`shrink-0 transition-transform ${
-                      collapsed ? "w-5 h-5" : "w-[18px] h-[18px]"
-                    } ${
-                      active
+                    className={`shrink-0 transition-transform ${collapsed ? "w-5 h-5" : "w-[18px] h-[18px]"
+                      } ${active
                         ? item.label === "Chấm điểm thi đua"
                           ? "text-amber-600"
                           : "text-primary"
                         : ""
-                    }`}
+                      }`}
                   />
                   {!collapsed && (
                     <span className="text-sm font-semibold truncate">
@@ -207,9 +192,8 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
 
         {/* Bottom: User info + Logout */}
         <div
-          className={`border-t border-border py-3 px-2 flex flex-col gap-2 shrink-0 ${
-            collapsed ? "items-center" : ""
-          }`}
+          className={`border-t border-border py-3 px-2 flex flex-col gap-2 shrink-0 ${collapsed ? "items-center" : ""
+            }`}
         >
           {/* User avatar / info */}
           {collapsed ? (
