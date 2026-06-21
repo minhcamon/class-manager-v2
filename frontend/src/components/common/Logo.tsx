@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { GraduationCap } from "lucide-react";
 
 interface LogoProps {
   /**
@@ -56,8 +55,8 @@ export default function Logo({
       return "flex items-center gap-3";
     }
     if (variant === "c-box") {
-      return cBoxBg === "dark" 
-        ? "flex items-center gap-2" 
+      return cBoxBg === "dark"
+        ? "flex items-center gap-2"
         : "flex items-center gap-2.5 text-xl font-bold text-neutral-900 no-underline";
     }
     return "inline-block";
@@ -76,17 +75,13 @@ export default function Logo({
     }
 
     if (variant === "c-box") {
-      const bgClass = cBoxBg === "dark" ? "bg-zinc-950" : "bg-primary";
-      const roundedClass = cBoxBg === "dark" ? "rounded-lg" : "rounded-[6px]";
-      const innerTextClass = cBoxBg === "dark" 
-        ? "text-lg font-bold text-foreground tracking-tight" 
+      const innerTextClass = cBoxBg === "dark"
+        ? "text-lg font-bold text-foreground tracking-tight"
         : "";
 
       return (
         <>
-          <div className={`w-8 h-8 ${bgClass} ${roundedClass} flex items-center justify-center shrink-0`}>
-            <span className="text-white font-extrabold text-lg">C</span>
-          </div>
+          <img src="/class-manager-logo.png" alt="ClassManager Logo" className="w-8 h-8 object-contain shrink-0" />
           <span className={textClassName || innerTextClass || "font-bold text-neutral-900 tracking-tight"}>
             ClassManager
           </span>
@@ -97,9 +92,7 @@ export default function Logo({
     // Default: 'graduation'
     return (
       <>
-        <div className="p-2 bg-primary text-white rounded-xl shrink-0">
-          <GraduationCap className="w-6 h-6" />
-        </div>
+        <img src="/class-manager-favicon.png" alt="ClassManager Logo" className="w-10 h-10 object-contain shrink-0" />
         <span className={textClassName || "font-extrabold text-neutral-900 tracking-tight text-xl"}>
           ClassManager
         </span>
