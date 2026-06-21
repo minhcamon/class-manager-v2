@@ -31,6 +31,13 @@ public class Enrollment {
     @Builder.Default
     private EnrollmentStatus status = EnrollmentStatus.ACTIVE;
 
+    @OneToOne(mappedBy = "enrollment", fetch = FetchType.LAZY)
+    private StudentProfile studentProfile;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private Group group;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

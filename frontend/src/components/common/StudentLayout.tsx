@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { type ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,7 +11,6 @@ import {
   Award,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
-import groupService from "@/services/groupService";
 import studentProfileService from "@/services/studentProfileService";
 
 interface StudentLayoutProps {
@@ -55,19 +55,10 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
       return;
     }
     let cancelled = false;
-    Promise.all([
-      groupService.getClassGroups(parseInt(String(classId))),
-      studentProfileService.getClassStudents(parseInt(String(classId))),
-    ])
-      .then(([groups, students]) => {
+    studentProfileService.getMyProfile()
+      .then((profile) => {
         if (cancelled) return;
-        const myStudent = students.find((s) => s.userId === user.id);
-        if (myStudent) {
-          const led = groups.find((g) => g.leaderStudentId === myStudent.studentProfileId);
-          setIsGroupLeader(!!led);
-        } else {
-          setIsGroupLeader(false);
-        }
+        setIsGroupLeader(!!profile.isLeader);
       })
       .catch(() => {
         if (!cancelled) setIsGroupLeader(false);

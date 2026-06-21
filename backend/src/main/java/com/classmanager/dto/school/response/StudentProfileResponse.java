@@ -30,6 +30,15 @@ public class StudentProfileResponse {
     
     @Schema(description = "Profile data (key-value pairs)")
     private Map<String, Object> data;
+
+    @Schema(description = "ID of the group the student belongs to", example = "5")
+    private Integer groupId;
+
+    @Schema(description = "Name of the group", example = "Tổ 1")
+    private String groupName;
+
+    @Schema(description = "Is student the leader of their group", example = "true")
+    private Boolean isLeader;
     
     @Schema(description = "Timestamp of last update")
     private LocalDateTime updatedAt;

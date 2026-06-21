@@ -6,6 +6,9 @@ export interface StudentProfile {
   formVersionId: number;
   formVersion?: FormTemplate;
   data: Record<string, string | number | boolean | null>;
+  groupId?: number | null;
+  groupName?: string | null;
+  isLeader?: boolean;
   createdAt: string;
   updatedAt: string;
 }

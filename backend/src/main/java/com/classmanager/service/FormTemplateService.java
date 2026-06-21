@@ -63,12 +63,14 @@ public class FormTemplateService {
         }
     }
 
+    @Transactional(readOnly = true)
     public FormTemplateResponse getActiveForm(Integer classId) {
         FormTemplate formTemplate = formTemplateRepository.findByClassEntityIdAndIsActiveTrue(classId)
                 .orElseThrow(FormNotFoundException::new);
         return mapToResponse(formTemplate);
     }
 
+    @Transactional(readOnly = true)
     public List<FormTemplateResponse> getAllVersions(Integer classId) {
         return formTemplateRepository.findAllByClassEntityIdOrderByVersionDesc(classId)
                 .stream()

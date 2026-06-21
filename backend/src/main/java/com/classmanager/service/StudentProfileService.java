@@ -35,151 +35,155 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StudentProfileService {
 
-    private final StudentProfileRepository studentProfileRepository;
-    private final FormTemplateRepository formTemplateRepository;
-    private final PointLogRepository pointLogRepository;
-    private final ClassRepository classRepository;
-    private final ObjectMapper objectMapper;
-    private final EnrollmentRepository enrollmentRepository;
+  private final StudentProfileRepository studentProfileRepository;
+  private final FormTemplateRepository formTemplateRepository;
+  private final PointLogRepository pointLogRepository;
+  private final ClassRepository classRepository;
+  private final ObjectMapper objectMapper;
+  private final EnrollmentRepository enrollmentRepository;
 
-    @Transactional
-    public StudentProfileResponse upsertProfile(Integer enrollmentId, Integer classId, StudentProfileUpdateRequest request) {
-        FormTemplate activeForm = formTemplateRepository.findByClassEntityIdAndIsActiveTrue(classId)
-                .orElseThrow(FormNotFoundException::new);
+  @Transactional
+  public StudentProfileResponse upsertProfile(Integer enrollmentId, Integer classId,
+      StudentProfileUpdateRequest request) {
+    FormTemplate activeForm = formTemplateRepository.findByClassEntityIdAndIsActiveTrue(classId)
+        .orElseThrow(FormNotFoundException::new);
 
-        if (activeForm.getClassEntity().getStatus() == ClassStatus.ENDED) {
-            throw new ClassEndedException();
-        }
-
-        validateProfileData(request.getData(), activeForm);
-
-        StudentProfile profile = studentProfileRepository.findByEnrollmentId(enrollmentId)
-                .orElse(StudentProfile.builder().enrollmentId(enrollmentId).build());
-
-        try {
-            profile.setData(objectMapper.writeValueAsString(request.getData()));
-            profile.setFormTemplate(activeForm);
-            
-            return mapToResponse(studentProfileRepository.save(profile));
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error processing profile data JSON", e);
-        }
+    if (activeForm.getClassEntity().getStatus() == ClassStatus.ENDED) {
+      throw new ClassEndedException();
     }
 
-    public StudentProfileResponse getProfile(Integer enrollmentId) {
-        StudentProfile profile = studentProfileRepository.findByEnrollmentId(enrollmentId)
-                .orElseThrow(ProfileNotFoundException::new);
-        return mapToResponse(profile);
-    }
+    validateProfileData(request.getData(), activeForm);
 
-    private void validateProfileData(Map<String, Object> data, FormTemplate form) {
-        try {
-            List<FormFieldDto> structure = objectMapper.readValue(form.getStructure(), new TypeReference<List<FormFieldDto>>() {});
-            for (FormFieldDto field : structure) {
-                if (field.isRequired() && (!data.containsKey(field.getFieldName()) || data.get(field.getFieldName()) == null)) {
-                    throw new InvalidFormStructureException("Field '" + field.getLabel() + "' is required");
-                }
-            }
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error parsing form structure JSON", e);
+    StudentProfile profile = studentProfileRepository.findByEnrollmentId(enrollmentId)
+        .orElse(StudentProfile.builder().enrollmentId(enrollmentId).build());
+
+    try {
+      profile.setData(objectMapper.writeValueAsString(request.getData()));
+      profile.setFormTemplate(activeForm);
+
+      return mapToResponse(studentProfileRepository.save(profile));
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error processing profile data JSON", e);
+    }
+  }
+
+  @Transactional(readOnly = true)
+  public StudentProfileResponse getProfile(Integer enrollmentId) {
+    StudentProfile profile = studentProfileRepository.findByEnrollmentId(enrollmentId)
+        .orElseThrow(ProfileNotFoundException::new);
+    return mapToResponse(profile);
+  }
+
+  private void validateProfileData(Map<String, Object> data, FormTemplate form) {
+    try {
+      List<FormFieldDto> structure = objectMapper.readValue(form.getStructure(),
+          new TypeReference<List<FormFieldDto>>() {
+          });
+      for (FormFieldDto field : structure) {
+        if (field.isRequired() && (!data.containsKey(field.getFieldName()) || data.get(field.getFieldName()) == null)) {
+          throw new InvalidFormStructureException("Field '" + field.getLabel() + "' is required");
         }
+      }
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error parsing form structure JSON", e);
+    }
+  }
+
+  private StudentProfileResponse mapToResponse(StudentProfile entity) {
+    try {
+      Map<String, Object> data = objectMapper.readValue(entity.getData(), new TypeReference<Map<String, Object>>() {
+      });
+      List<FormFieldDto> structure = objectMapper.readValue(entity.getFormTemplate().getStructure(),
+          new TypeReference<List<FormFieldDto>>() {
+          });
+
+      Enrollment enrollment = entity.getEnrollment();
+      Integer groupId = (enrollment != null && enrollment.getGroup() != null) ? enrollment.getGroup().getId() : null;
+      String groupName = (enrollment != null && enrollment.getGroup() != null) ? enrollment.getGroup().getGroupName()
+          : null;
+      boolean isLeader = enrollment != null
+          && enrollment.getGroup() != null
+          && enrollment.getGroup().getLeader() != null
+          && enrollment.getGroup().getLeader().getId().equals(enrollment.getId());
+
+      return StudentProfileResponse.builder()
+          .id(entity.getId())
+          .enrollmentId(entity.getEnrollmentId())
+          .formVersionId(entity.getFormTemplate().getId())
+          .formVersion(entity.getFormTemplate().getVersion())
+          .formStructure(structure)
+          .data(data)
+          .groupId(groupId)
+          .groupName(groupName)
+          .isLeader(isLeader)
+          .updatedAt(entity.getUpdatedAt())
+          .build();
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error parsing profile data JSON", e);
+    }
+  }
+
+  @Transactional(readOnly = true)
+  public List<ClassStudentResponse> getClassStudents(Long currentUserId, Role role, Integer classId) {
+    List<Enrollment> enrollments = enrollmentRepository.findClassDashboardData(classId, EnrollmentStatus.ACTIVE);
+
+    if (enrollments.isEmpty()) {
+      if (!classRepository.existsById(classId)) {
+        throw new CustomException(HttpStatus.NOT_FOUND, "CLASS_NOT_FOUND", "Lớp học không tồn tại.");
+      }
     }
 
-    private StudentProfileResponse mapToResponse(StudentProfile entity) {
-        try {
-            Map<String, Object> data = objectMapper.readValue(entity.getData(), new TypeReference<Map<String, Object>>() {});
-            List<FormFieldDto> structure = objectMapper.readValue(entity.getFormTemplate().getStructure(), new TypeReference<List<FormFieldDto>>() {});
-            
-            return StudentProfileResponse.builder()
-                    .id(entity.getId())
-                    .enrollmentId(entity.getEnrollmentId())
-                    .formVersionId(entity.getFormTemplate().getId())
-                    .formVersion(entity.getFormTemplate().getVersion())
-                    .formStructure(structure)
-                    .data(data)
-                    .updatedAt(entity.getUpdatedAt())
-                    .build();
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error parsing profile data JSON", e);
-        }
+    if (role == Role.STUDENT) {
+      boolean isEnrolled = enrollments.stream()
+          .anyMatch(e -> e.getUser().getId().equals(currentUserId));
+      if (!isEnrolled) {
+        throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này.");
+      }
+    } else if (role == Role.TEACHER) {
+      boolean isOwner = classRepository.existsByIdAndTeacherId(classId, currentUserId);
+      if (!isOwner) {
+        throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên của lớp này.");
+      }
+    } else {
+      throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Quyền hạn không hợp lệ.");
     }
 
-    @Transactional
-    public List<ClassStudentResponse> getClassStudents(Long currentUserId, Role role, Integer classId) {
-        ClassEntity classEntity = classRepository.findById(classId)
-                .orElseThrow(com.classmanager.exception.ClassNotFoundException::new);
+    ClassEntity classEntity = enrollments.isEmpty()
+        ? classRepository.findById(classId).orElseThrow(com.classmanager.exception.ClassNotFoundException::new)
+        : enrollments.get(0).getClassEntity();
 
-        List<Enrollment> enrollments = enrollmentRepository.findByClassEntityIdAndStatus(classId, EnrollmentStatus.ACTIVE);
+    List<Object[]> pointSums = pointLogRepository.sumPointValuesGroupByStudentId(classId);
+    Map<Integer, Integer> pointSumMap = pointSums.stream()
+        .filter(row -> row[0] != null)
+        .collect(java.util.stream.Collectors.toMap(
+            row -> (Integer) row[0],
+            row -> row[1] != null ? ((Number) row[1]).intValue() : 0,
+            (v1, v2) -> v1));
 
-        if (role == Role.TEACHER) {
-            if (!classEntity.getTeacher().getId().equals(currentUserId)) {
-                throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên của lớp này.");
-            }
-        } else if (role == Role.STUDENT) {
-            boolean isEnrolled = enrollments.stream()
-                    .anyMatch(e -> e.getUser().getId().equals(currentUserId));
-            if (!isEnrolled) {
-                throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này.");
-            }
-        } else {
-            throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Quyền hạn không hợp lệ.");
-        }
+    Integer basePoint = classEntity.getBasePoint() != null ? classEntity.getBasePoint() : 100;
 
-        FormTemplate activeForm = formTemplateRepository.findByClassEntityIdAndIsActiveTrue(classId)
-                .orElseGet(() -> {
-                    FormTemplate defaultForm = FormTemplate.builder()
-                            .classEntity(classEntity)
-                            .title("Thông tin học sinh")
-                            .structure("[]")
-                            .version(1)
-                            .isActive(true)
-                            .build();
-                    return formTemplateRepository.save(defaultForm);
-                });
+    return enrollments.stream().map(enrollment -> {
+      StudentProfile student = enrollment.getStudentProfile();
+      Integer totalDelta = (student != null) ? pointSumMap.getOrDefault(student.getId(), 0) : 0;
+      Integer studentProfileId = (student != null) ? student.getId() : null;
 
-        return enrollments.stream().map(enrollment -> {
-            StudentProfile student = studentProfileRepository.findByEnrollmentId(enrollment.getId()).orElse(null);
-            
-            if (student == null) {
-                student = StudentProfile.builder()
-                        .enrollmentId(enrollment.getId())
-                        .formTemplate(activeForm)
-                        .data("{}")
-                        .build();
-                student = studentProfileRepository.save(student);
-            }
-            
-            Integer totalDelta = 0;
-            Integer basePoint = classEntity.getBasePoint() != null ? classEntity.getBasePoint() : 100;
-            Integer studentProfileId = null;
-            Integer groupId = null;
-            String groupName = null;
-            boolean isLeader = false;
+      Integer groupId = enrollment.getGroup() != null ? enrollment.getGroup().getId() : null;
+      String groupName = enrollment.getGroup() != null ? enrollment.getGroup().getGroupName() : null;
+      boolean isLeader = enrollment.getGroup() != null
+          && enrollment.getGroup().getLeader() != null
+          && enrollment.getGroup().getLeader().getId().equals(enrollment.getId());
 
-            if (student != null) {
-                studentProfileId = student.getId();
-                totalDelta = pointLogRepository.sumPointValuesByStudentIdAndClassId(student.getId(), classId);
-                if (totalDelta == null) {
-                    totalDelta = 0;
-                }
-                groupId = student.getGroup() != null ? student.getGroup().getId() : null;
-                groupName = student.getGroup() != null ? student.getGroup().getGroupName() : null;
-                isLeader = student.getGroup() != null 
-                        && student.getGroup().getLeader() != null 
-                        && student.getGroup().getLeader().getId().equals(student.getId());
-            }
-
-            return ClassStudentResponse.builder()
-                    .studentProfileId(studentProfileId)
-                    .userId(enrollment.getUser().getId())
-                    .fullName(enrollment.getUser().getFullName())
-                    .username(enrollment.getUser().getUsername())
-                    .phoneNumber(enrollment.getUser().getPhoneNumber())
-                    .groupId(groupId)
-                    .groupName(groupName)
-                    .isLeader(isLeader)
-                    .currentPoint(basePoint + totalDelta)
-                    .build();
-        }).collect(java.util.stream.Collectors.toList());
-    }
+      return ClassStudentResponse.builder()
+          .studentProfileId(studentProfileId)
+          .userId(enrollment.getUser().getId())
+          .fullName(enrollment.getUser().getFullName())
+          .username(enrollment.getUser().getUsername())
+          .phoneNumber(enrollment.getUser().getPhoneNumber())
+          .groupId(groupId)
+          .groupName(groupName)
+          .isLeader(isLeader)
+          .currentPoint(basePoint + totalDelta)
+          .build();
+    }).collect(java.util.stream.Collectors.toList());
+  }
 }

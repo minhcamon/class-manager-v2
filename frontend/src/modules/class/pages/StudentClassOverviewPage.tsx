@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import {
@@ -15,7 +16,6 @@ import {
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import classService from "@/services/classService";
-import groupService from "@/services/groupService";
 import studentProfileService from "@/services/studentProfileService";
 import pointService from "@/services/pointService";
 import { useAuth } from "@/contexts/AuthContext";
@@ -327,23 +327,18 @@ export default function StudentClassOverviewPage() {
       if (!classId) return;
       setIsLoading(true);
       try {
-        const [data, groupsList, studentsList] = await Promise.all([
+        const [data, myProfile] = await Promise.all([
           classService.getClassById(parseInt(classId)),
-          groupService.getClassGroups(parseInt(classId)),
-          studentProfileService.getClassStudents(parseInt(classId))
+          studentProfileService.getMyProfile()
         ]);
         setClassData(data);
 
         // Check if student is a group leader
-        if (user?.id) {
-          const myStudent = studentsList.find(s => s.userId === user.id);
-          if (myStudent) {
-            setMyStudentProfileId(myStudent.studentProfileId);
-            const myLedGroup = groupsList.find(g => g.leaderStudentId === myStudent.studentProfileId);
-            if (myLedGroup) {
-              setIsGroupLeader(true);
-              setLedGroupName(myLedGroup.groupName);
-            }
+        if (myProfile) {
+          setMyStudentProfileId(myProfile.id);
+          if (myProfile.isLeader) {
+            setIsGroupLeader(true);
+            setLedGroupName(myProfile.groupName || "");
           }
         }
       } catch (error) {

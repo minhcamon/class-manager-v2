@@ -27,8 +27,8 @@ public class Group {
     private String groupName;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "leader_student_id")
-    private StudentProfile leader;
+    @JoinColumn(name = "leader_enrollment_id")
+    private Enrollment leader;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

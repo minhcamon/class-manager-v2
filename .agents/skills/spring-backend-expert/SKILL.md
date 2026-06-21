@@ -188,6 +188,20 @@ app:
 - Dev: `http://localhost:5173`
 - Production: Vercel domain
 
+### 10. Query Optimization & Performance Best Practices
+
+To prevent performance degradation and N+1 query problems in listing/dashboard endpoints, strictly adhere to the following optimization patterns:
+
+- **Prefer `@Transactional(readOnly = true)` for GET endpoints**: Ensures Spring/Hibernate optimizes dirty checking and session management.
+- **Strictly prohibit DB writes/saves inside GET endpoints**: Never insert default or missing records (e.g., default `StudentProfile` objects) inside a listing GET request. Instead:
+  - Create these records proactively when their parent entity is created (e.g., auto-create profile inside `joinClass`).
+  - Handle missing data gracefully by returning `null` or defaults in the response mapper.
+  - Let records heal/create dynamically when the user submits a mutation (e.g. `POST`/`PUT` to update profile).
+- **RAM-based validation**: Instead of making multiple database roundtrips to validate input (e.g., checking class owner, checking student enrollment) before querying the collection, execute the primary JPQL `FETCH JOIN` query first. Perform checks and validations on RAM using Java Streams over the retrieved collection.
+- **Avoid redundant parent entity queries**: Extract parent entities from fetched children rather than calling `repository.findById(id)` (e.g. `enrollments.get(0).getClassEntity()`).
+- **Use `EXISTS` queries for validation**: If you must check permissions or ownership (e.g., if a teacher owns a class), use a lightweight `exists` query (e.g., `existsByIdAndTeacherId`) instead of loading the entire entity via `findById`.
+- **Pre-aggregate using JPQL `GROUP BY`**: When compiling points or aggregate metrics, use JPQL grouping queries (`pointLogRepository.sumPointValuesGroupByStudentId`) rather than executing separate count/sum queries inside a loop.
+
 ---
 
 ## Verification Workflow
@@ -212,6 +226,10 @@ cd backend
 ## Anti-patterns to Avoid
 
 ```
+❌ Performing database writes/saves inside GET or listing endpoints
+❌ Querying parent entities multiple times instead of extracting them from child objects
+❌ Running validation/security count/exists queries individually when collection is fetched
+❌ Running multiple N+1 lazy queries inside loops (always use FETCH JOIN / @EntityGraph)
 ❌ Updating student points directly
 ❌ Exposing Entity directly to API (without DTO)
 ❌ Business logic in Controller

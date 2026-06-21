@@ -85,21 +85,23 @@ public class ClassService {
 
     @Transactional
     public ClassResponse endClass(Long teacherId, Integer classId) {
-        ClassEntity classEntity = classRepository.findByIdAndTeacherId(classId, teacherId)
+        ClassEntity classEntity = classRepository.findByIdAndTeacherIdWithTeacherAndSchool(classId, teacherId)
                 .orElseThrow(ClassNotFoundException::new);
 
         classEntity.setStatus(ClassStatus.ENDED);
         return mapToResponse(classRepository.save(classEntity));
     }
 
+    @Transactional(readOnly = true)
     public ClassResponse getClassById(Integer classId) {
-        ClassEntity classEntity = classRepository.findById(classId)
+        ClassEntity classEntity = classRepository.findByIdWithTeacherAndSchool(classId)
                 .orElseThrow(ClassNotFoundException::new);
         return mapToResponse(classEntity);
     }
 
+    @Transactional(readOnly = true)
     public ClassResponse getActiveClassByTeacher(Long teacherId) {
-        ClassEntity classEntity = classRepository.findByTeacherIdAndStatus(teacherId, ClassStatus.ACTIVE)
+        ClassEntity classEntity = classRepository.findByTeacherIdAndStatusWithTeacherAndSchool(teacherId, ClassStatus.ACTIVE)
                 .orElse(null);
         if (classEntity == null) {
             return null;

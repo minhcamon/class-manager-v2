@@ -13,9 +13,11 @@ import com.classmanager.exception.GroupNotFoundException;
 import com.classmanager.exception.ProfileNotFoundException;
 import com.classmanager.exception.GroupLeaderConflictException;
 import com.classmanager.exception.ClassNotFoundException;
+import com.classmanager.entity.Enrollment;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.GroupRepository;
 import com.classmanager.repository.StudentProfileRepository;
+import com.classmanager.repository.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,10 +34,11 @@ public class GroupService {
     private final GroupRepository groupRepository;
     private final ClassRepository classRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Transactional
     public GroupResponse createGroup(Long teacherId, GroupCreateRequest request) {
-        ClassEntity classEntity = classRepository.findById(request.getClassId())
+        ClassEntity classEntity = classRepository.findByIdWithTeacher(request.getClassId())
                 .orElseThrow(ClassNotFoundException::new);
 
         if (!classEntity.getTeacher().getId().equals(teacherId)) {
@@ -75,19 +78,25 @@ public class GroupService {
         StudentProfile studentProfile = studentProfileRepository.findById(studentProfileId)
                 .orElseThrow(ProfileNotFoundException::new);
 
+        Enrollment enrollment = studentProfile.getEnrollment();
+        if (enrollment == null) {
+            enrollment = enrollmentRepository.findById(studentProfile.getEnrollmentId())
+                    .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "Enrollment not found."));
+        }
+
         // BR-GROUP-03: Group leader must belong to the group
-        if (studentProfile.getGroup() == null || !studentProfile.getGroup().getId().equals(groupId)) {
+        if (enrollment.getGroup() == null || !enrollment.getGroup().getId().equals(groupId)) {
             throw new GroupLeaderConflictException();
         }
 
         // Remove previous leader role if any other group has this student as leader
-        Optional<Group> previousGroup = groupRepository.findByLeaderId(studentProfileId);
+        Optional<Group> previousGroup = groupRepository.findByLeaderId(enrollment.getId());
         previousGroup.ifPresent(g -> {
             g.setLeader(null);
             groupRepository.save(g);
         });
 
-        group.setLeader(studentProfile);
+        group.setLeader(enrollment);
         return mapToResponse(groupRepository.save(group));
     }
 
@@ -95,6 +104,12 @@ public class GroupService {
     public void addStudentToGroup(Long teacherId, Integer studentProfileId, Integer groupId) {
         StudentProfile studentProfile = studentProfileRepository.findById(studentProfileId)
                 .orElseThrow(ProfileNotFoundException::new);
+
+        Enrollment enrollment = studentProfile.getEnrollment();
+        if (enrollment == null) {
+            enrollment = enrollmentRepository.findById(studentProfile.getEnrollmentId())
+                    .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "Enrollment not found."));
+        }
 
         if (groupId == null) {
             removeStudentFromGroup(teacherId, studentProfileId);
@@ -114,14 +129,14 @@ public class GroupService {
         }
 
         // If student is currently leader of another group, clear that
-        Optional<Group> previousGroup = groupRepository.findByLeaderId(studentProfileId);
+        Optional<Group> previousGroup = groupRepository.findByLeaderId(enrollment.getId());
         previousGroup.ifPresent(g -> {
             g.setLeader(null);
             groupRepository.save(g);
         });
 
-        studentProfile.setGroup(group);
-        studentProfileRepository.save(studentProfile);
+        enrollment.setGroup(group);
+        enrollmentRepository.save(enrollment);
     }
 
     @Transactional
@@ -129,7 +144,13 @@ public class GroupService {
         StudentProfile studentProfile = studentProfileRepository.findById(studentProfileId)
                 .orElseThrow(ProfileNotFoundException::new);
 
-        ClassEntity classEntity = studentProfile.getFormTemplate().getClassEntity();
+        Enrollment enrollment = studentProfile.getEnrollment();
+        if (enrollment == null) {
+            enrollment = enrollmentRepository.findById(studentProfile.getEnrollmentId())
+                    .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "ENROLLMENT_NOT_FOUND", "Enrollment not found."));
+        }
+
+        ClassEntity classEntity = enrollment.getClassEntity();
         if (!classEntity.getTeacher().getId().equals(teacherId)) {
             throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên của lớp này.");
         }
@@ -139,33 +160,45 @@ public class GroupService {
         }
 
         // If the student is a leader of their current group, clear it
-        Optional<Group> ledGroup = groupRepository.findByLeaderId(studentProfileId);
+        Optional<Group> ledGroup = groupRepository.findByLeaderId(enrollment.getId());
         ledGroup.ifPresent(g -> {
             g.setLeader(null);
             groupRepository.save(g);
         });
 
-        studentProfile.setGroup(null);
-        studentProfileRepository.save(studentProfile);
+        enrollment.setGroup(null);
+        enrollmentRepository.save(enrollment);
     }
 
     @Transactional(readOnly = true)
     public List<GroupResponse> getClassGroups(Integer classId) {
-        if (!classRepository.existsById(classId)) {
-            throw new ClassNotFoundException();
-        }
         return groupRepository.findByClassEntityId(classId).stream()
-                .map(this::mapToResponse)
+                .map(group -> mapToResponse(group, classId))
                 .collect(Collectors.toList());
     }
 
     private GroupResponse mapToResponse(Group group) {
+        return mapToResponse(group, group.getClassEntity() != null ? group.getClassEntity().getId() : null);
+    }
+
+    private GroupResponse mapToResponse(Group group, Integer classId) {
+        Integer leaderProfileId = null;
+        String leaderName = null;
+        if (group.getLeader() != null) {
+            Enrollment leaderEnrollment = group.getLeader();
+            if (leaderEnrollment.getStudentProfile() != null) {
+                leaderProfileId = leaderEnrollment.getStudentProfile().getId();
+            }
+            if (leaderEnrollment.getUser() != null) {
+                leaderName = leaderEnrollment.getUser().getFullName();
+            }
+        }
         return GroupResponse.builder()
                 .id(group.getId())
-                .classId(group.getClassEntity().getId())
+                .classId(classId)
                 .groupName(group.getGroupName())
-                .leaderStudentId(group.getLeader() != null ? group.getLeader().getId() : null)
-                .leaderName(group.getLeader() != null && group.getLeader().getEnrollment() != null ? group.getLeader().getEnrollment().getUser().getFullName() : null)
+                .leaderStudentId(leaderProfileId)
+                .leaderName(leaderName)
                 .build();
     }
 }

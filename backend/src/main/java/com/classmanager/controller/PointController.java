@@ -76,7 +76,14 @@ public class PointController {
     public ResponseEntity<APIResponse<List<PointLogResponse>>> getPointLogs(
             @Parameter(description = "ID of the student profile") @RequestParam Integer studentProfileId) {
         Long currentUserId = getCurrentUserId();
-        List<PointLogResponse> response = pointLogService.getStudentPointLogs(currentUserId, studentProfileId);
+        com.classmanager.enums.Role role = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .filter(auth -> auth.startsWith("ROLE_"))
+                .map(auth -> com.classmanager.enums.Role.valueOf(auth.replace("ROLE_", "")))
+                .findFirst()
+                .orElse(com.classmanager.enums.Role.STUDENT);
+        
+        List<PointLogResponse> response = pointLogService.getStudentPointLogs(currentUserId, role, studentProfileId);
         return ResponseEntity.ok(APIResponse.success("Point logs retrieved successfully", response));
     }
 
@@ -94,7 +101,14 @@ public class PointController {
     public ResponseEntity<APIResponse<List<PointLogResponse>>> getClassPointLogs(
             @Parameter(description = "ID of the class") @PathVariable Integer classId) {
         Long currentUserId = getCurrentUserId();
-        List<PointLogResponse> response = pointLogService.getClassPointLogs(currentUserId, classId);
+        com.classmanager.enums.Role role = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .filter(auth -> auth.startsWith("ROLE_"))
+                .map(auth -> com.classmanager.enums.Role.valueOf(auth.replace("ROLE_", "")))
+                .findFirst()
+                .orElse(com.classmanager.enums.Role.STUDENT);
+        
+        List<PointLogResponse> response = pointLogService.getClassPointLogs(currentUserId, role, classId);
         return ResponseEntity.ok(APIResponse.success("Class point logs retrieved successfully", response));
     }
 

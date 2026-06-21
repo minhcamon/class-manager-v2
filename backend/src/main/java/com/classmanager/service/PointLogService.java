@@ -10,6 +10,7 @@ import com.classmanager.entity.Group;
 import com.classmanager.entity.PointLog;
 import com.classmanager.entity.StudentProfile;
 import com.classmanager.entity.User;
+import com.classmanager.entity.Enrollment;
 import com.classmanager.enums.ClassStatus;
 import com.classmanager.enums.Role;
 import com.classmanager.exception.*;
@@ -18,6 +19,7 @@ import com.classmanager.repository.GroupRepository;
 import com.classmanager.repository.PointLogRepository;
 import com.classmanager.repository.StudentProfileRepository;
 import com.classmanager.repository.UserRepository;
+import com.classmanager.repository.EnrollmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class PointLogService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final ClassRepository classRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
     @Transactional
     public PointLogResponse createPointLog(Long currentUserId, PointLogCreateRequest request) {
@@ -58,16 +61,14 @@ public class PointLogService {
         // BR-POINT-03: Permissions
         if (currentUser.getRole() == Role.STUDENT) {
             // To fetch the leader profile matching currentUser in this class
-            StudentProfile currentStudentProfile = studentProfileRepository.findAll().stream()
-                    .filter(sp -> sp.getEnrollment() != null && sp.getEnrollment().getUser().getId().equals(currentUserId) 
-                            && sp.getEnrollment().getClassEntity().getId().equals(classEntity.getId()))
-                    .findFirst()
+            StudentProfile currentStudentProfile = studentProfileRepository.findByUserIdAndClassId(currentUserId, classEntity.getId())
                     .orElseThrow(() -> new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này."));
 
-            Group ownedGroup = groupRepository.findByLeaderId(currentStudentProfile.getId())
+            Group ownedGroup = groupRepository.findByLeaderId(currentStudentProfile.getEnrollmentId())
                     .orElseThrow(() -> new StudentNotInGroupException());
 
-            if (targetStudent.getGroup() == null || !targetStudent.getGroup().getId().equals(ownedGroup.getId())) {
+            Enrollment targetEnrollment = targetStudent.getEnrollment();
+            if (targetEnrollment == null || targetEnrollment.getGroup() == null || !targetEnrollment.getGroup().getId().equals(ownedGroup.getId())) {
                 throw new StudentNotInGroupException();
             }
         } else if (currentUser.getRole() == Role.TEACHER) {
@@ -91,34 +92,34 @@ public class PointLogService {
     }
 
     @Transactional(readOnly = true)
-    public List<PointLogResponse> getStudentPointLogs(Long currentUserId, Integer studentProfileId) {
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found."));
-
-        StudentProfile targetStudent = studentProfileRepository.findById(studentProfileId)
+    public List<PointLogResponse> getStudentPointLogs(Long currentUserId, Role role, Integer studentProfileId) {
+        StudentProfile targetStudent = studentProfileRepository.findByIdWithRelations(studentProfileId)
                 .orElseThrow(ProfileNotFoundException::new);
 
         ClassEntity classEntity = targetStudent.getFormTemplate().getClassEntity();
 
-        // Permission check
-        if (currentUser.getRole() == Role.STUDENT) {
-            StudentProfile currentStudentProfile = studentProfileRepository.findAll().stream()
-                    .filter(sp -> sp.getEnrollment() != null && sp.getEnrollment().getUser().getId().equals(currentUserId) 
-                            && sp.getEnrollment().getClassEntity().getId().equals(classEntity.getId()))
-                    .findFirst()
-                    .orElseThrow(() -> new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này."));
+        // Permission check on RAM
+        if (role == Role.STUDENT) {
+            boolean isSelf = targetStudent.getEnrollment() != null && targetStudent.getEnrollment().getUser().getId().equals(currentUserId);
 
-            if (!currentStudentProfile.getId().equals(studentProfileId)) {
-                // If not self, check if group leader of target student
-                Group ownedGroup = groupRepository.findByLeaderId(currentStudentProfile.getId()).orElse(null);
-                if (ownedGroup == null || targetStudent.getGroup() == null || !targetStudent.getGroup().getId().equals(ownedGroup.getId())) {
+            if (!isSelf) {
+                Enrollment targetEnrollment = targetStudent.getEnrollment();
+                if (targetEnrollment == null || targetEnrollment.getGroup() == null) {
+                    throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không có quyền xem điểm học sinh này.");
+                }
+
+                Group group = targetEnrollment.getGroup();
+                boolean isLeaderOfGroup = group.getLeader() != null && group.getLeader().getUser().getId().equals(currentUserId);
+                if (!isLeaderOfGroup) {
                     throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không có quyền xem điểm học sinh này.");
                 }
             }
-        } else if (currentUser.getRole() == Role.TEACHER) {
-            if (!classEntity.getTeacher().getId().equals(currentUserId)) {
+        } else if (role == Role.TEACHER) {
+            if (classEntity.getTeacher() == null || !classEntity.getTeacher().getId().equals(currentUserId)) {
                 throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên chủ nhiệm lớp này.");
             }
+        } else {
+            throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Quyền hạn không hợp lệ.");
         }
 
         return pointLogRepository.findByStudentIdAndClassEntityId(studentProfileId, classEntity.getId()).stream()
@@ -128,7 +129,7 @@ public class PointLogService {
 
     @Transactional(readOnly = true)
     public StudentCurrentPointResponse getStudentCurrentPoint(Integer studentProfileId) {
-        StudentProfile student = studentProfileRepository.findById(studentProfileId)
+        StudentProfile student = studentProfileRepository.findByIdWithRelations(studentProfileId)
                 .orElseThrow(ProfileNotFoundException::new);
 
         ClassEntity classEntity = student.getFormTemplate().getClassEntity();
@@ -156,35 +157,48 @@ public class PointLogService {
             throw new InvalidWeekDateException();
         }
 
-        for (Integer studentId : request.getStudentIds()) {
-            StudentProfile targetStudent = studentProfileRepository.findById(studentId)
-                    .orElseThrow(ProfileNotFoundException::new);
+        java.util.List<StudentProfile> targetStudents = studentProfileRepository.findAllByIdsWithEnrollmentAndGroupAndClass(request.getStudentIds());
+        if (targetStudents.size() != request.getStudentIds().size()) {
+            throw new ProfileNotFoundException();
+        }
 
-            ClassEntity classEntity = targetStudent.getFormTemplate().getClassEntity();
-            if (classEntity.getStatus() == ClassStatus.ENDED) {
-                throw new ClassEndedException();
+        StudentProfile firstStudent = targetStudents.get(0);
+        ClassEntity classEntity = firstStudent.getFormTemplate().getClassEntity();
+        if (classEntity.getStatus() == ClassStatus.ENDED) {
+            throw new ClassEndedException();
+        }
+
+        // Verify that all students belong to the same class
+        for (StudentProfile student : targetStudents) {
+            if (!student.getFormTemplate().getClassEntity().getId().equals(classEntity.getId())) {
+                throw new CustomException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "Tất cả học sinh phải thuộc cùng một lớp học.");
             }
+        }
 
-            // BR-POINT-03: Permissions
-            if (currentUser.getRole() == Role.STUDENT) {
-                StudentProfile currentStudentProfile = studentProfileRepository.findAll().stream()
-                        .filter(sp -> sp.getEnrollment() != null && sp.getEnrollment().getUser().getId().equals(currentUserId) 
-                                && sp.getEnrollment().getClassEntity().getId().equals(classEntity.getId()))
-                        .findFirst()
-                        .orElseThrow(() -> new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này."));
+        Group ownedGroup = null;
+        boolean isStudent = currentUser.getRole() == Role.STUDENT;
 
-                Group ownedGroup = groupRepository.findByLeaderId(currentStudentProfile.getId())
-                        .orElseThrow(() -> new StudentNotInGroupException());
+        if (isStudent) {
+            StudentProfile currentStudentProfile = studentProfileRepository.findByUserIdAndClassId(currentUserId, classEntity.getId())
+                    .orElseThrow(() -> new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này."));
 
-                if (targetStudent.getGroup() == null || !targetStudent.getGroup().getId().equals(ownedGroup.getId())) {
+            ownedGroup = groupRepository.findByLeaderId(currentStudentProfile.getEnrollmentId())
+                    .orElseThrow(() -> new StudentNotInGroupException());
+        } else if (currentUser.getRole() == Role.TEACHER) {
+            if (!classEntity.getTeacher().getId().equals(currentUserId)) {
+                throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên chủ nhiệm lớp này.");
+            }
+        } else {
+            throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Quyền hạn không hợp lệ.");
+        }
+
+        java.util.List<PointLog> pointLogsToSave = new java.util.ArrayList<>();
+        for (StudentProfile targetStudent : targetStudents) {
+            if (isStudent) {
+                Enrollment targetEnrollment = targetStudent.getEnrollment();
+                if (targetEnrollment == null || targetEnrollment.getGroup() == null || !targetEnrollment.getGroup().getId().equals(ownedGroup.getId())) {
                     throw new StudentNotInGroupException();
                 }
-            } else if (currentUser.getRole() == Role.TEACHER) {
-                if (!classEntity.getTeacher().getId().equals(currentUserId)) {
-                    throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên chủ nhiệm lớp này.");
-                }
-            } else {
-                throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Quyền hạn không hợp lệ.");
             }
 
             PointLog pointLog = PointLog.builder()
@@ -196,29 +210,24 @@ public class PointLogService {
                     .weekStartDate(request.getWeekStartDate())
                     .build();
 
-            pointLogRepository.save(pointLog);
+            pointLogsToSave.add(pointLog);
         }
+
+        pointLogRepository.saveAll(pointLogsToSave);
     }
 
     @Transactional(readOnly = true)
-    public List<PointLogResponse> getClassPointLogs(Long currentUserId, Integer classId) {
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found."));
-
-        ClassEntity classEntity = classRepository.findById(classId)
-                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "CLASS_NOT_FOUND", "Class not found."));
-
-        // Only teacher of this class or group leaders within the class may read logs
-        if (currentUser.getRole() == Role.TEACHER) {
-            if (!classEntity.getTeacher().getId().equals(currentUserId)) {
+    public List<PointLogResponse> getClassPointLogs(Long currentUserId, Role role, Integer classId) {
+        if (role == Role.TEACHER) {
+            boolean isOwner = classRepository.existsByIdAndTeacherId(classId, currentUserId);
+            if (!isOwner) {
                 throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không phải giáo viên chủ nhiệm lớp này.");
             }
-        } else if (currentUser.getRole() == Role.STUDENT) {
-            studentProfileRepository.findAll().stream()
-                    .filter(sp -> sp.getEnrollment() != null && sp.getEnrollment().getUser().getId().equals(currentUserId)
-                            && sp.getEnrollment().getClassEntity().getId().equals(classId))
-                    .findFirst()
-                    .orElseThrow(() -> new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này."));
+        } else if (role == Role.STUDENT) {
+            boolean isEnrolled = enrollmentRepository.existsByClassEntityIdAndUserIdAndStatus(classId, currentUserId, com.classmanager.enums.EnrollmentStatus.ACTIVE);
+            if (!isEnrolled) {
+                throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Bạn không thuộc lớp học này.");
+            }
         } else {
             throw new CustomException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Quyền hạn không hợp lệ.");
         }
