@@ -19,6 +19,30 @@ jobs:
       run:
         working-directory: ./backend
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_URL: jdbc:postgresql://localhost:5432/postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JWT_SECRET: mock_jwt_secret_key_at_least_32_bytes_long_for_security_checks
+      GOOGLE_CLIENT_ID: mock-google-client-id
+      GOOGLE_SECRET: mock-google-secret
+      ALLOWED_ORIGINS: http://localhost:5173
+
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
