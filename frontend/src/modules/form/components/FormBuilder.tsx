@@ -4,16 +4,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import type { FormTemplateCreateRequest } from "@/types/form";
 import formService from "@/services/formService";
 import Button from "@/components/ui/Button";
+import type { FormField } from "@/types/form";
 
 const fieldSchema = z.object({
   fieldName: z.string().min(1, "Field ID is required").regex(/^[a-z][a-zA-Z0-9]*$/, "Must be camelCase"),
   label: z.string().min(1, "Label is required"),
   type: z.enum(["text", "number", "boolean", "select", "date", "textarea"]),
-  required: z.boolean().default(false),
-  options: z.string().optional().transform(val => val ? val.split(",").map(s => s.trim()) : undefined),
+  required: z.boolean(),
+  options: z.string().optional(),
 });
 
 const formTemplateSchema = z.object({
@@ -40,7 +40,7 @@ export default function FormBuilder({ classId, onSuccess }: FormBuilderProps) {
     resolver: zodResolver(formTemplateSchema),
     defaultValues: {
       title: "Student Dossier Form",
-      structure: [{ fieldName: "fullName", label: "Full Name", type: "text", required: true }],
+      structure: [{ fieldName: "fullName", label: "Full Name", type: "text", required: true, options: "" }],
     },
   });
 
@@ -52,8 +52,17 @@ export default function FormBuilder({ classId, onSuccess }: FormBuilderProps) {
   const onSubmit = async (data: FormBuilderData) => {
     setIsSubmitting(true);
     try {
-      // Cast to FormTemplateCreateRequest to avoid any
-      await formService.createForm(classId, data as unknown as FormTemplateCreateRequest);
+      const formattedStructure: FormField[] = data.structure.map(field => ({
+        fieldName: field.fieldName,
+        label: field.label,
+        type: field.type,
+        required: field.required,
+        options: field.options ? field.options.split(",").map(s => s.trim()) : undefined
+      }));
+      await formService.createForm(classId, {
+        title: data.title,
+        structure: formattedStructure
+      });
       toast.success("New form version published!");
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -85,7 +94,7 @@ export default function FormBuilder({ classId, onSuccess }: FormBuilderProps) {
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => append({ fieldName: "", label: "", type: "text", required: false })}
+              onClick={() => append({ fieldName: "", label: "", type: "text", required: false, options: "" })}
             >
               Add Field
             </Button>

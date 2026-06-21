@@ -95,7 +95,7 @@ const authService = {
       avatarUrl: u.avatarUrl,
       role: u.role,
       schoolName: u.schoolName,
-      classId: u.classId
+      classId: u.classId ?? undefined
     };
   },
 
