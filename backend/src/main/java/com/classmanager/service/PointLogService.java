@@ -20,6 +20,7 @@ import com.classmanager.repository.PointLogRepository;
 import com.classmanager.repository.StudentProfileRepository;
 import com.classmanager.repository.UserRepository;
 import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.repository.WeeklyReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,8 @@ public class PointLogService {
     private final GroupRepository groupRepository;
     private final ClassRepository classRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final WeeklyReportService weeklyReportService;
+    private final WeeklyReportRepository weeklyReportRepository;
 
     @Transactional
     public PointLogResponse createPointLog(Long currentUserId, PointLogCreateRequest request) {
@@ -51,6 +54,11 @@ public class PointLogService {
         ClassEntity classEntity = targetStudent.getFormTemplate().getClassEntity();
         if (classEntity.getStatus() == ClassStatus.ENDED) {
             throw new ClassEndedException();
+        }
+
+        // BR-POINT-04: Cannot write to a locked week
+        if (weeklyReportRepository.existsByClassEntityIdAndWeekStartDate(classEntity.getId(), request.getWeekStartDate())) {
+            throw new CustomException(HttpStatus.CONFLICT, "WEEK_ALREADY_LOCKED", "Tuần học này đã bị chốt điểm.");
         }
 
         // BR-POINT-05: week_start_date must be a Monday
@@ -88,7 +96,9 @@ public class PointLogService {
                 .weekStartDate(request.getWeekStartDate())
                 .build();
 
-        return mapToResponse(pointLogRepository.save(pointLog));
+        PointLog saved = pointLogRepository.save(pointLog);
+        weeklyReportService.syncSnapshotForStudent(targetStudent, classEntity, request.getWeekStartDate());
+        return mapToResponse(saved);
     }
 
     @Transactional(readOnly = true)
@@ -168,6 +178,11 @@ public class PointLogService {
             throw new ClassEndedException();
         }
 
+        // BR-POINT-04: Cannot write to a locked week
+        if (weeklyReportRepository.existsByClassEntityIdAndWeekStartDate(classEntity.getId(), request.getWeekStartDate())) {
+            throw new CustomException(HttpStatus.CONFLICT, "WEEK_ALREADY_LOCKED", "Tuần học này đã bị chốt điểm.");
+        }
+
         // Verify that all students belong to the same class
         for (StudentProfile student : targetStudents) {
             if (!student.getFormTemplate().getClassEntity().getId().equals(classEntity.getId())) {
@@ -214,6 +229,11 @@ public class PointLogService {
         }
 
         pointLogRepository.saveAll(pointLogsToSave);
+
+        // Sync snapshots for all affected students
+        for (StudentProfile targetStudent : targetStudents) {
+            weeklyReportService.syncSnapshotForStudent(targetStudent, classEntity, request.getWeekStartDate());
+        }
     }
 
     @Transactional(readOnly = true)
@@ -245,6 +265,11 @@ public class PointLogService {
         PointLog pointLog = pointLogRepository.findById(pointLogId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "POINT_LOG_NOT_FOUND", "Point log not found."));
 
+        // BR-POINT-04: Cannot delete from a locked week
+        if (weeklyReportRepository.existsByClassEntityIdAndWeekStartDate(pointLog.getClassEntity().getId(), pointLog.getWeekStartDate())) {
+            throw new CustomException(HttpStatus.CONFLICT, "WEEK_ALREADY_LOCKED", "Tuần học này đã bị chốt điểm.");
+        }
+
         // Only the creator or the teacher of the class may delete
         boolean isCreator = pointLog.getCreatedByUser().getId().equals(currentUserId);
         boolean isTeacherOfClass = currentUser.getRole() == Role.TEACHER
@@ -255,6 +280,9 @@ public class PointLogService {
         }
 
         pointLogRepository.delete(pointLog);
+
+        // Sync snapshot
+        weeklyReportService.syncSnapshotForStudent(pointLog.getStudent(), pointLog.getClassEntity(), pointLog.getWeekStartDate());
     }
 
     @Transactional
@@ -264,6 +292,11 @@ public class PointLogService {
 
         PointLog pointLog = pointLogRepository.findById(pointLogId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "POINT_LOG_NOT_FOUND", "Point log not found."));
+
+        // BR-POINT-04: Cannot update a locked week
+        if (weeklyReportRepository.existsByClassEntityIdAndWeekStartDate(pointLog.getClassEntity().getId(), pointLog.getWeekStartDate())) {
+            throw new CustomException(HttpStatus.CONFLICT, "WEEK_ALREADY_LOCKED", "Tuần học này đã bị chốt điểm.");
+        }
 
         // Only the creator or the teacher of the class may edit
         boolean isCreator = pointLog.getCreatedByUser().getId().equals(currentUserId);
@@ -281,7 +314,9 @@ public class PointLogService {
             pointLog.setReason(request.getReason());
         }
 
-        return mapToResponse(pointLogRepository.save(pointLog));
+        PointLog saved = pointLogRepository.save(pointLog);
+        weeklyReportService.syncSnapshotForStudent(pointLog.getStudent(), pointLog.getClassEntity(), pointLog.getWeekStartDate());
+        return mapToResponse(saved);
     }
 
     private PointLogResponse mapToResponse(PointLog log) {

@@ -35,4 +35,14 @@ public interface PointLogRepository extends JpaRepository<PointLog, Long> {
            "WHERE p.classEntity.id = :classId " +
            "GROUP BY p.student.id")
     List<Object[]> sumPointValuesGroupByStudentId(@Param("classId") Integer classId);
+
+    @Query("SELECT COALESCE(SUM(p.pointValue), 0) FROM PointLog p " +
+           "WHERE p.student.id = :studentId AND p.classEntity.id = :classId " +
+           "AND p.weekStartDate = :weekStartDate AND p.pointValue > 0")
+    Integer sumBonusByStudentIdAndClassIdAndWeek(@Param("studentId") Integer studentId, @Param("classId") Integer classId, @Param("weekStartDate") LocalDate weekStartDate);
+
+    @Query("SELECT COALESCE(SUM(p.pointValue), 0) FROM PointLog p " +
+           "WHERE p.student.id = :studentId AND p.classEntity.id = :classId " +
+           "AND p.weekStartDate = :weekStartDate AND p.pointValue < 0")
+    Integer sumPenaltyByStudentIdAndClassIdAndWeek(@Param("studentId") Integer studentId, @Param("classId") Integer classId, @Param("weekStartDate") LocalDate weekStartDate);
 }
