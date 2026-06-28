@@ -1,10 +1,11 @@
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable react-hooks/set-state-in-effect */
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import { setTokens, clearTokens, getTokens } from "../utils/utils";
 import type { DecodedUser } from "../utils/utils";
 import authService from "../services/authService";
+import studentProfileService from "../services/studentProfileService";
 
 interface AuthContextType {
   user: DecodedUser | null;
@@ -16,6 +17,7 @@ interface AuthContextType {
   checkAuth: () => Promise<void>;
   selectRole: (role: string) => Promise<void>;
   createSchool: (name: string, address: string) => Promise<void>;
+  syncLeaderStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +36,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const checkAuth = async () => {
+  const fetchStudentLeaderStatus = useCallback(async (userData: DecodedUser): Promise<DecodedUser> => {
+    if (userData.role === "STUDENT") {
+      try {
+        const profile = await studentProfileService.getMyProfile();
+        return { ...userData, isLeader: !!profile.isLeader };
+      } catch (err) {
+        console.warn("Failed to fetch student leader status:", err);
+      }
+    }
+    return userData;
+  }, []);
+
+  const syncLeaderStatus = async () => {
+    if (user && user.role === "STUDENT") {
+      try {
+        const profile = await studentProfileService.getMyProfile();
+        const isLeader = !!profile.isLeader;
+        if (user.isLeader !== isLeader) {
+          const updatedUser = { ...user, isLeader };
+          setUser(updatedUser);
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      } catch (err) {
+        console.warn("Failed to sync leader status:", err);
+      }
+    }
+  };
+
+  const checkAuth = useCallback(async () => {
     const token = getTokens();
     if (!token) {
       setUser(null);
@@ -44,7 +74,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsLoading(true);
     try {
-      const userData = await authService.getUserProfile();
+      let userData = await authService.getUserProfile();
+      userData = await fetchStudentLeaderStatus(userData);
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
     } catch (error) {
@@ -52,8 +83,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { accessToken, user: decoded } = await authService.refreshToken();
         setTokens(accessToken);
-        setUser(decoded);
-        localStorage.setItem("user", JSON.stringify(decoded));
+        const userData = await fetchStudentLeaderStatus(decoded);
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
       } catch (refreshErr) {
         console.error("Token refresh failed during checkAuth, logging out:", refreshErr);
         clearTokens();
@@ -63,24 +95,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchStudentLeaderStatus]);
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
   const login = async (username: string, password: string) => {
     const { accessToken, user: userData } = await authService.login(username, password);
     setTokens(accessToken);
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const enrichedUser = await fetchStudentLeaderStatus(userData);
+    setUser(enrichedUser);
+    localStorage.setItem("user", JSON.stringify(enrichedUser));
   };
 
   const loginWithGoogle = async (idToken: string) => {
     const { accessToken, user: userData } = await authService.loginWithGoogle(idToken);
     setTokens(accessToken);
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const enrichedUser = await fetchStudentLeaderStatus(userData);
+    setUser(enrichedUser);
+    localStorage.setItem("user", JSON.stringify(enrichedUser));
   };
 
   const register = async (username: string, password: string, phoneNumber: string, fullName: string) => {
@@ -94,8 +128,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Refresh token to get updated JWT claims containing the new role
     const { accessToken, user: userData } = await authService.refreshToken();
     setTokens(accessToken);
-    setUser(userData);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const enrichedUser = await fetchStudentLeaderStatus(userData);
+    setUser(enrichedUser);
+    localStorage.setItem("user", JSON.stringify(enrichedUser));
   };
 
   const createSchool = async (name: string, address: string) => {
@@ -128,6 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     checkAuth,
     selectRole,
     createSchool,
+    syncLeaderStatus,
   };
 
   return (

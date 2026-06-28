@@ -11,7 +11,6 @@ import {
   Award,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
-import studentProfileService from "@/services/studentProfileService";
 import Logo from "./Logo";
 
 interface StudentLayoutProps {
@@ -21,7 +20,7 @@ interface StudentLayoutProps {
 const SIDEBAR_KEY = "student_sidebar_collapsed";
 
 export default function StudentLayout({ children }: StudentLayoutProps) {
-  const { user } = useAuth();
+  const { user, syncLeaderStatus } = useAuth();
   const location = useLocation();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -32,8 +31,7 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     }
   });
 
-  // Track if current user is a group leader for this class
-  const [isGroupLeader, setIsGroupLeader] = useState(false);
+  const isGroupLeader = !!user?.isLeader;
 
   useEffect(() => {
     try {
@@ -49,25 +47,12 @@ export default function StudentLayout({ children }: StudentLayoutProps) {
     location.pathname.match(/\/teacher\/classes\/([^/]+)/);
   const classId = classIdMatch ? classIdMatch[1] : user?.classId;
 
-  // Fetch group leader status whenever classId or user changes
+  // Sync leader status with backend in the background when classId or user changes
   useEffect(() => {
-    if (!classId || !user?.id) {
-      setIsGroupLeader(false);
-      return;
+    if (classId && user?.id) {
+      syncLeaderStatus();
     }
-    let cancelled = false;
-    studentProfileService.getMyProfile()
-      .then((profile) => {
-        if (cancelled) return;
-        setIsGroupLeader(!!profile.isLeader);
-      })
-      .catch(() => {
-        if (!cancelled) setIsGroupLeader(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [classId, user?.id]);
+  }, [classId, user?.id, syncLeaderStatus]);
 
   const baseNavItems = [
     {

@@ -99,6 +99,7 @@ function ScoreTab({ classData, studentProfileId }: { classData: Class; studentPr
     }
   });
 
+  const basePoint = period === "year" ? classData.basePoint : 0;
   const totalDelta = filteredLogs.reduce((acc, log) => acc + log.pointValue, 0);
 
   return (
@@ -126,7 +127,7 @@ function ScoreTab({ classData, studentProfileId }: { classData: Class; studentPr
           <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">
             Điểm cơ sở
           </p>
-          <p className="text-3xl font-black text-neutral-900">{classData.basePoint}</p>
+          <p className="text-3xl font-black text-neutral-900">{basePoint}</p>
         </div>
         <div className="bg-white rounded-2xl border border-border p-5 text-center">
           <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">
@@ -140,7 +141,7 @@ function ScoreTab({ classData, studentProfileId }: { classData: Class; studentPr
           <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-1">
             Tổng điểm
           </p>
-          <p className="text-3xl font-black text-white">{classData.basePoint + totalDelta}</p>
+          <p className="text-3xl font-black text-white">{basePoint + totalDelta}</p>
         </div>
       </div>
 

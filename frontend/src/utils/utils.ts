@@ -11,6 +11,7 @@ export interface DecodedUser {
   teacherProfileId?: number;
   studentProfileId?: number;
   groupId?: number;
+  isLeader?: boolean;
 }
 
 // Token Management
