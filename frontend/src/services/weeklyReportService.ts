@@ -50,6 +50,7 @@ export interface WeeklyReportEntry {
   totalPenalty: number;
   classRank: number;
   groupRank: number;
+  aiSummary?: string;
 }
 
 export interface WeeklyReportDetail {

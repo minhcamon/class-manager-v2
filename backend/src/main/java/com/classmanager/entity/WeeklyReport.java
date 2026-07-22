@@ -55,6 +55,9 @@ public class WeeklyReport {
     @Column(name = "locked_by", nullable = false, length = 20)
     private String lockedBy; // 'CRON' or 'TEACHER'
 
+    @Column(name = "ai_summary", columnDefinition = "TEXT")
+    private String aiSummary;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

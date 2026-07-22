@@ -19,6 +19,8 @@ import {
 
 import LogoutButton from "@/components/ui/LogoutButton";
 import Logo from "@/components/common/Logo";
+import { AiChatbotWidget } from "@/components/ai/AiChatbotWidget";
+
 
 
 export default function Dashboard() {
@@ -280,6 +282,12 @@ export default function Dashboard() {
           {activeTab === "forms" && (
             <FormManagementPage classId={activeClass.id} />
           )}
+
+          {/* AI Assistant Floating Widget */}
+          <AiChatbotWidget
+            classId={activeClass.id}
+            weekStartDate={new Date().toISOString().split("T")[0]}
+          />
         </main>
       </div>
     );
