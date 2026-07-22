@@ -27,7 +27,7 @@ public class AiReportService {
     private final LlmProviderChain providerChain;
     private final AiRequestLogRepository requestLogRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AiReportResponse generateWeeklySummary(AiReportRequest request, String currentUsername) {
         long startTime = System.currentTimeMillis();
 
