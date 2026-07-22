@@ -19,7 +19,7 @@ import {
 
 import LogoutButton from "@/components/ui/LogoutButton";
 import Logo from "@/components/common/Logo";
-import { AiChatbotWidget } from "@/components/ai/AiChatbotWidget";
+import AiChatbotWidget from "@/modules/ai/components/AiChatbotWidget";
 
 
 

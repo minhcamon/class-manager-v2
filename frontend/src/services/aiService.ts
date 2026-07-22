@@ -1,5 +1,5 @@
 import api from "@/lib/axios";
-import type { APIResponse } from "./authService";
+import type { APIResponse } from "@/services/authService";
 import type { AiReportRequest, AiReportResponse, AiChatRefineRequest } from "@/types/ai";
 
 const aiService = {
