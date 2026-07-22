@@ -3,7 +3,6 @@ package com.classmanager.service;
 import com.classmanager.dto.school.request.ClassCreateRequest;
 import com.classmanager.dto.school.response.ClassResponse;
 import com.classmanager.entity.ClassEntity;
-import com.classmanager.entity.School;
 import com.classmanager.entity.User;
 import com.classmanager.enums.ClassStatus;
 import com.classmanager.exception.ActiveClassExistsException;
