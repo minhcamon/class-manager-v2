@@ -20,7 +20,12 @@ public class FormFieldDto {
     private String type; 
     
     @Schema(description = "Whether this field is mandatory", example = "true")
-    private boolean required;
+    @Builder.Default
+    private Boolean required = false;
+
+    public boolean isRequired() {
+        return Boolean.TRUE.equals(required);
+    }
     
     @Schema(description = "List of options for 'select' type fields", example = "[\"Option 1\", \"Option 2\"]")
     private List<String> options;

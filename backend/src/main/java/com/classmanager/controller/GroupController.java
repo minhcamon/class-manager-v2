@@ -27,6 +27,7 @@ import java.util.List;
 public class GroupController {
 
     private final GroupService groupService;
+    private final com.classmanager.service.GroupImportService groupImportService;
 
     @PostMapping("/groups")
     @PreAuthorize("hasRole('TEACHER')")
@@ -96,6 +97,57 @@ public class GroupController {
             @Parameter(description = "ID of the class") @PathVariable Integer classId) {
         List<GroupResponse> response = groupService.getClassGroups(classId);
         return ResponseEntity.ok(APIResponse.success("Groups retrieved successfully", response));
+    }
+
+    @PostMapping(value = "/classes/{classId}/groups/import-preview", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(
+        summary = "Preview group import file",
+        description = "Parse Excel or CSV file to preview group assignment mapping and validation status without saving.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "File parsed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid or malformed file")
+        }
+    )
+    public ResponseEntity<APIResponse<com.classmanager.dto.school.response.GroupImportPreviewResponse>> previewGroupImport(
+            @Parameter(description = "ID of the class") @PathVariable Integer classId,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        Long teacherId = getCurrentUserId();
+        com.classmanager.dto.school.response.GroupImportPreviewResponse response = groupImportService.previewImport(teacherId, classId, file);
+        return ResponseEntity.ok(APIResponse.success("Preview generated successfully", response));
+    }
+
+    @PostMapping("/classes/{classId}/groups/import")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(
+        summary = "Execute group import",
+        description = "Confirm and batch apply group assignment and leader designation.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Import executed successfully"),
+            @ApiResponse(responseCode = "400", description = "Validation or data error")
+        }
+    )
+    public ResponseEntity<APIResponse<com.classmanager.dto.school.response.GroupImportResultResponse>> executeGroupImport(
+            @Parameter(description = "ID of the class") @PathVariable Integer classId,
+            @Valid @RequestBody com.classmanager.dto.school.request.GroupImportConfirmRequest request) {
+        Long teacherId = getCurrentUserId();
+        com.classmanager.dto.school.response.GroupImportResultResponse response = groupImportService.executeImport(teacherId, classId, request);
+        return ResponseEntity.ok(APIResponse.success(response.getMessage(), response));
+    }
+
+    @GetMapping("/classes/{classId}/groups/export-template")
+    @PreAuthorize("hasRole('TEACHER')")
+    @Operation(
+        summary = "Download group import Excel template",
+        description = "Download standard Excel template (.xlsx) for importing group assignments."
+    )
+    public ResponseEntity<byte[]> downloadImportTemplate(
+            @Parameter(description = "ID of the class") @PathVariable Integer classId) {
+        byte[] excelBytes = groupImportService.generateTemplate();
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "Mau_Import_Danh_Sach_To.xlsx");
+        return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
     }
 
     private Long getCurrentUserId() {

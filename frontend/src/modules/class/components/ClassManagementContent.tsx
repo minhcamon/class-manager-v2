@@ -7,7 +7,8 @@ import {
   Loader2, 
   Info,
   Check,
-  Cloud
+  Cloud,
+  FileSpreadsheet
 } from "lucide-react";
 import type { Class } from "@/types/class";
 import type { Group } from "@/types/group";
@@ -22,6 +23,7 @@ import CreateGroupDialog from "./CreateGroupDialog";
 import StudentActionDialog from "./StudentActionDialog";
 import ClassDetailsCard from "./ClassDetailsCard";
 import DangerZoneCard from "./DangerZoneCard";
+import { GroupImportModal } from "@/components/groups/GroupImportModal";
 
 interface ClassManagementContentProps {
   classData: Class;
@@ -51,6 +53,7 @@ export default function ClassManagementContent({ classData, onClassEnded }: Clas
 
   // Dialog & Modal states
   const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<ClassStudentResponse | null>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
 
@@ -316,6 +319,15 @@ export default function ClassManagementContent({ classData, onClassEnded }: Clas
                 </Button>
               )}
               <Button
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center gap-1.5 font-semibold text-xs py-2 shadow-sm cursor-pointer border-neutral-300"
+                variant="outline"
+                size="sm"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                Import từ Excel/CSV
+              </Button>
+              <Button
                 onClick={() => setIsCreateGroupOpen(true)}
                 className="flex items-center gap-1.5 font-semibold text-xs py-2 shadow-sm cursor-pointer"
                 size="sm"
@@ -401,6 +413,13 @@ export default function ClassManagementContent({ classData, onClassEnded }: Clas
         onAssignLeader={handleAssignLeader}
         onMoveGroup={handleMoveStudentGroup}
         isUpdating={false}
+      />
+
+      <GroupImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        classId={classData.id}
+        onSuccess={fetchData}
       />
     </div>
   );

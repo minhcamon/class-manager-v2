@@ -18,3 +18,41 @@ export interface LeaderAssignRequest {
 export interface GroupAssignRequest {
   groupId: number | null;
 }
+
+export interface GroupImportRow {
+  rowNumber: number;
+  studentIdentifier: string;
+  studentName: string;
+  studentProfileId: number | null;
+  groupName: string;
+  isLeader: boolean;
+  status: "VALID" | "STUDENT_NOT_FOUND" | "MISSING_GROUP" | "MULTIPLE_LEADERS" | "DUPLICATE_STUDENT";
+  statusMessage: string;
+}
+
+export interface GroupImportPreviewResponse {
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  newGroupsCount: number;
+  newGroupNames: string[];
+  rows: GroupImportRow[];
+}
+
+export interface GroupImportConfirmRequest {
+  rows: Array<{
+    studentProfileId: number;
+    groupName: string;
+    isLeader: boolean;
+  }>;
+  createNewGroups: boolean;
+}
+
+export interface GroupImportResultResponse {
+  groupsCreated: number;
+  studentsAssigned: number;
+  leadersAssigned: number;
+  groupNames: string[];
+  message: string;
+}
+
