@@ -32,6 +32,14 @@ public class JwtUtil {
     }
 
     public String generateAccessToken(Long userId, String username, Role role, String schoolName, String avatarUrl, String googleEmail, Integer classId) {
+        return generateAccessTokenWithReadOnly(userId, username, role, schoolName, avatarUrl, googleEmail, classId, false);
+    }
+
+    public String generateViewAsToken(Long userId, String username, Role role, String schoolName, String avatarUrl, String googleEmail, Integer classId) {
+        return generateAccessTokenWithReadOnly(userId, username, role, schoolName, avatarUrl, googleEmail, classId, true);
+    }
+
+    private String generateAccessTokenWithReadOnly(Long userId, String username, Role role, String schoolName, String avatarUrl, String googleEmail, Integer classId, boolean readOnly) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("role", role != null ? role.name() : null);
@@ -39,6 +47,7 @@ public class JwtUtil {
         claims.put("avatar", avatarUrl);
         claims.put("email", googleEmail);
         claims.put("classId", classId);
+        claims.put("readOnly", readOnly);
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -73,6 +82,11 @@ public class JwtUtil {
 
     public String extractSchoolName(String token) {
         return extractAllClaims(token).get("schoolName", String.class);
+    }
+
+    public boolean isReadOnly(String token) {
+        Boolean readOnly = extractAllClaims(token).get("readOnly", Boolean.class);
+        return Boolean.TRUE.equals(readOnly);
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

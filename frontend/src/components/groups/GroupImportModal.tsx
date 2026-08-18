@@ -56,8 +56,11 @@ export const GroupImportModal: React.FC<GroupImportModalProps> = ({
       setDownloadingTemplate(true);
       await groupService.downloadTemplate(classId);
       toast.success("Đã tải xuống file Excel mẫu chuẩn!");
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Không thể tải file mẫu.");
+    } catch (err: unknown) {
+      const msg = err && typeof err === "object" && "response" in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        ? (err as { response: { data: { message: string } } }).response.data.message
+        : "Không thể tải file mẫu.";
+      toast.error(msg);
     } finally {
       setDownloadingTemplate(false);
     }
@@ -98,8 +101,11 @@ export const GroupImportModal: React.FC<GroupImportModalProps> = ({
       setPreviewData(res);
       setStep(2);
       toast.success(`Đã phân tích ${res.totalRows} dòng từ file!`);
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Lỗi đọc file Excel/CSV. Vui lòng kiểm tra lại định dạng.");
+    } catch (err: unknown) {
+      const msg = err && typeof err === "object" && "response" in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        ? (err as { response: { data: { message: string } } }).response.data.message
+        : "Lỗi đọc file Excel/CSV. Vui lòng kiểm tra lại định dạng.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -128,8 +134,11 @@ export const GroupImportModal: React.FC<GroupImportModalProps> = ({
       toast.success(res.message);
       setStep(3);
       onSuccess();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Lỗi khi nhập danh sách tổ.");
+    } catch (err: unknown) {
+      const msg = err && typeof err === "object" && "response" in err && (err as { response?: { data?: { message?: string } } }).response?.data?.message
+        ? (err as { response: { data: { message: string } } }).response.data.message
+        : "Lỗi khi nhập danh sách tổ.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

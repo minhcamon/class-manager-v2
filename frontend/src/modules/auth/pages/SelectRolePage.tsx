@@ -4,9 +4,11 @@ import { toast } from "sonner";
 import OnboardingLayout from "@/components/common/OnboardingLayout";
 
 export default function SelectRolePage() {
-  const { selectRole } = useAuth();
+  const { user, selectRole, logout } = useAuth();
   const [selectedRole, setSelectedRole] = useState<"TEACHER" | "STUDENT" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const isTeacherPending = user?.teacherRequestStatus === 'PENDING';
 
   const handleSubmit = async () => {
     if (!selectedRole) {
@@ -17,7 +19,11 @@ export default function SelectRolePage() {
     setIsLoading(true);
     try {
       await selectRole(selectedRole);
-      toast.success("Lựa chọn vai trò thành công!");
+      if (selectedRole === "TEACHER") {
+        toast.info("Yêu cầu vai trò Giáo viên đã được gửi. Vui lòng chờ Quản trị viên (Admin) phê duyệt.");
+      } else {
+        toast.success("Lựa chọn vai trò thành công!");
+      }
     } catch (err) {
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Có lỗi xảy ra, vui lòng thử lại!");
@@ -25,6 +31,35 @@ export default function SelectRolePage() {
       setIsLoading(false);
     }
   };
+
+  if (isTeacherPending) {
+    return (
+      <OnboardingLayout>
+        <div className="flex flex-col gap-6 text-center max-w-[480px] mx-auto py-8">
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto">
+            <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-zinc-950">Yêu cầu Giáo viên đang chờ duyệt</h2>
+            <p className="text-xs text-zinc-500 mt-2 leading-relaxed">
+              Bạn đã đăng ký vai trò <strong>Giáo viên Chủ nhiệm</strong>. Quản trị viên hệ thống đang xem xét hồ sơ của bạn. Bạn sẽ có thể truy cập đầy đủ chức năng sau khi được phê duyệt.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              logout();
+              window.location.href = '/login';
+            }}
+            className="px-4 py-2 bg-zinc-950 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer self-center"
+          >
+            Đăng xuất tài khoản
+          </button>
+        </div>
+      </OnboardingLayout>
+    );
+  }
 
   return (
     <OnboardingLayout>

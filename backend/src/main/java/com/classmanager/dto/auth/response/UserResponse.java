@@ -36,6 +36,12 @@ public class UserResponse {
     @Schema(description = "Thời gian tạo tài khoản", example = "2026-06-17T15:54:42")
     private LocalDateTime createdAt;
 
+    @Schema(description = "ID của người dùng", example = "1")
+    private Long id;
+
     @Schema(description = "ID của lớp học mà học sinh đang tham gia (nếu có)", example = "1")
     private Integer classId;
+
+    @Schema(description = "Trạng thái yêu cầu cấp quyền Giáo viên (nếu có)", example = "PENDING")
+    private String teacherRequestStatus;
 }

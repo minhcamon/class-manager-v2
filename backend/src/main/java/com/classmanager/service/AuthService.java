@@ -6,9 +6,12 @@ import com.classmanager.dto.auth.request.UserLoginRequest;
 import com.classmanager.dto.auth.request.UserRegisterRequest;
 import com.classmanager.dto.auth.response.TokenPair;
 import com.classmanager.dto.auth.response.UserResponse;
+import com.classmanager.entity.Enrollment;
 import com.classmanager.entity.User;
 import com.classmanager.enums.Role;
 import com.classmanager.exception.CustomException;
+import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.repository.TeacherRoleRequestRepository;
 import com.classmanager.repository.UserRepository;
 import com.classmanager.security.JwtUtil;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -19,15 +22,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.classmanager.repository.EnrollmentRepository;
-import com.classmanager.entity.Enrollment;
-
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final TeacherRoleRequestRepository teacherRoleRequestRepository;
+    private final TeacherApprovalEngine teacherApprovalEngine;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
@@ -58,13 +60,13 @@ public class AuthService {
         return mapToUserResponse(savedUser);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenPair login(UserLoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "Invalid username or password"));
+        User user = userRepository.findByUsernameWithSchool(request.getUsername())
+                .orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid username or password"));
 
-        if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new CustomException(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS", "Invalid username or password");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new CustomException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid username or password");
         }
 
         return generateTokenPair(user);
@@ -73,50 +75,27 @@ public class AuthService {
     @Transactional
     public TokenPair loginWithGoogle(GoogleLoginRequest request) {
         try {
-            GoogleIdToken idToken = googleIdTokenVerifier.verify(request.getIdToken());
-            if (idToken == null) {
-                throw new CustomException(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_TOKEN", "Invalid Google ID Token");
+            GoogleIdToken googleIdToken = googleIdTokenVerifier.verify(request.getIdToken());
+            if (googleIdToken == null) {
+                throw new CustomException(HttpStatus.UNAUTHORIZED, "INVALID_GOOGLE_TOKEN", "Invalid Google ID token");
             }
 
-            GoogleIdToken.Payload payload = idToken.getPayload();
+            GoogleIdToken.Payload payload = googleIdToken.getPayload();
             String email = payload.getEmail();
-            String name = (String) payload.get("name");
+            String fullName = (String) payload.get("name");
             String pictureUrl = (String) payload.get("picture");
 
-            User user = userRepository.findByGoogleEmail(email)
-                    .map(existingUser -> {
-                        // Update avatarUrl if it has changed or is empty
-                        if (pictureUrl != null && !pictureUrl.equals(existingUser.getAvatarUrl())) {
-                            existingUser.setAvatarUrl(pictureUrl);
-                            return userRepository.save(existingUser);
-                        }
-                        return existingUser;
-                    })
-                    .orElseGet(() -> {
-                        // Extract default username from email prefix
-                        String baseUsername = email != null && email.contains("@") ? email.split("@")[0] : "google_user";
-                        String usernameCandidate = baseUsername;
-                        
-                        // Limit candidate to fit within length constraint (50 chars)
-                        if (usernameCandidate.length() > 40) {
-                            usernameCandidate = usernameCandidate.substring(0, 40);
-                        }
-                        
-                        // Resolve potential collisions by appending a number
-                        int count = 1;
-                        while (userRepository.existsByUsername(usernameCandidate)) {
-                            usernameCandidate = baseUsername + count;
-                            if (usernameCandidate.length() > 45) {
-                                usernameCandidate = usernameCandidate.substring(0, 45);
-                            }
-                            count++;
-                        }
+            if (fullName == null || fullName.trim().isEmpty()) {
+                fullName = email.split("@")[0];
+            }
 
-                        // BR-AUTH-02: phone number can be empty for Google Login, BR-AUTH-03: role = null
+            final String resolvedFullName = fullName;
+            User user = userRepository.findByGoogleEmailWithSchool(email)
+                    .orElseGet(() -> {
+                        // BR-AUTH-02, BR-AUTH-03: auto-register with role = null
                         User newUser = User.builder()
-                                .username(usernameCandidate)
                                 .googleEmail(email)
-                                .fullName(name != null && !name.trim().isEmpty() ? name : email)
+                                .fullName(resolvedFullName)
                                 .avatarUrl(pictureUrl)
                                 .role(null)
                                 .build();
@@ -157,6 +136,12 @@ public class AuthService {
         Role role = request.getRole();
         if (role == Role.ADMIN) {
             throw new CustomException(HttpStatus.BAD_REQUEST, "INVALID_ROLE", "Cannot select ADMIN role");
+        }
+
+        if (role == Role.TEACHER) {
+            // Feature 7: Create TeacherRoleRequest in PENDING status, role remains null until approved
+            teacherApprovalEngine.createRequest(user);
+            return mapToUserResponse(user);
         }
 
         user.setRole(role);
@@ -209,7 +194,15 @@ public class AuthService {
             }
         }
 
+        String teacherRequestStatus = null;
+        if (user.getRole() == null) {
+            teacherRequestStatus = teacherRoleRequestRepository.findTopByUserIdOrderByRequestedAtDesc(user.getId())
+                    .map(r -> r.getStatus().name())
+                    .orElse(null);
+        }
+
         return UserResponse.builder()
+                .id(user.getId())
                 .username(user.getUsername())
                 .googleEmail(user.getGoogleEmail())
                 .phoneNumber(user.getPhoneNumber())
@@ -219,6 +212,7 @@ public class AuthService {
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .classId(classId)
+                .teacherRequestStatus(teacherRequestStatus)
                 .build();
     }
 }

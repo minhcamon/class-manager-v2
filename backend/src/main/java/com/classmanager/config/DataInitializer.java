@@ -49,14 +49,14 @@ public class DataInitializer implements CommandLineRunner {
                 .build();
         school = schoolRepository.save(school);
 
-        // 2. Create Admin User
+        // 2. Create Admin User (Global System Admin - no school assigned)
         User adminUser = User.builder()
                 .username("admin_dev")
                 .passwordHash(passwordEncoder.encode("123456"))
                 .fullName("Quản trị viên Hệ thống")
                 .phoneNumber("0900000000")
                 .role(Role.ADMIN)
-                .school(school)
+                .school(null)
                 .build();
         userRepository.save(adminUser);
 

@@ -12,6 +12,8 @@ export interface DecodedUser {
   studentProfileId?: number;
   groupId?: number;
   isLeader?: boolean;
+  readOnly?: boolean;
+  teacherRequestStatus?: string | null;
 }
 
 // Token Management
@@ -55,6 +57,7 @@ export const decodeToken = (token: string): DecodedUser | null => {
       teacherProfileId: claims.teacherProfileId,
       studentProfileId: claims.studentProfileId,
       groupId: claims.groupId,
+      readOnly: Boolean(claims.readOnly),
     };
   } catch (error) {
     console.error("decodeToken failed:", error);

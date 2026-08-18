@@ -81,7 +81,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        // 3. Auth Guard logic check
+        // 3. BR-ADMIN-03: View-As Read-Only token check
+        boolean readOnly = jwtUtil.isReadOnly(token);
+        if (readOnly && !request.getMethod().equalsIgnoreCase("GET") && !request.getMethod().equalsIgnoreCase("OPTIONS")) {
+            writeErrorResponse(response, HttpStatus.FORBIDDEN, "READ_ONLY_SESSION", "This session is read-only. Mutation operations (POST/PUT/DELETE) are blocked.", path);
+            return;
+        }
+
+        // 4. Auth Guard logic check
         // Check role == null
         if (role == null) {
             if (!path.equals("/api/v1/auth/select-role") && !path.equals("/api/v1/auth/me")) {
