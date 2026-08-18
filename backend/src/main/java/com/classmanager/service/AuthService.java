@@ -8,8 +8,11 @@ import com.classmanager.dto.auth.response.TokenPair;
 import com.classmanager.dto.auth.response.UserResponse;
 import com.classmanager.entity.Enrollment;
 import com.classmanager.entity.User;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.enums.Role;
 import com.classmanager.exception.CustomException;
+import java.util.Map;
 import com.classmanager.repository.EnrollmentRepository;
 import com.classmanager.repository.TeacherRoleRequestRepository;
 import com.classmanager.repository.UserRepository;
@@ -33,6 +36,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public UserResponse register(UserRegisterRequest request) {
@@ -141,11 +145,27 @@ public class AuthService {
         if (role == Role.TEACHER) {
             // Feature 7: Create TeacherRoleRequest in PENDING status, role remains null until approved
             teacherApprovalEngine.createRequest(user);
+            auditLogService.logUserAction(
+                    AuditAction.SELECT_ROLE,
+                    AuditTargetEntity.USER,
+                    String.valueOf(user.getId()),
+                    null,
+                    Map.of("role", "TEACHER_PENDING"),
+                    "User submitted teacher role request"
+            );
             return mapToUserResponse(user);
         }
 
         user.setRole(role);
         User updatedUser = userRepository.save(user);
+        auditLogService.logUserAction(
+                AuditAction.SELECT_ROLE,
+                AuditTargetEntity.USER,
+                String.valueOf(updatedUser.getId()),
+                null,
+                Map.of("role", role.name()),
+                "User selected role: " + role.name()
+        );
         return mapToUserResponse(updatedUser);
     }
 
@@ -155,6 +175,14 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
 
         teacherApprovalEngine.withdrawRequest(userId);
+        auditLogService.logUserAction(
+                AuditAction.WITHDRAW_TEACHER_REQUEST,
+                AuditTargetEntity.TEACHER_REQUEST,
+                String.valueOf(userId),
+                null,
+                Map.of("status", "WITHDRAWAL"),
+                "User withdrew teacher role request"
+        );
         return mapToUserResponse(user);
     }
 

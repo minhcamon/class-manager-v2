@@ -23,6 +23,7 @@ import TeacherRequests from "./views/admin/TeacherRequests";
 import UserInspector from "./views/admin/UserInspector";
 import SchoolsOverview from "./views/admin/SchoolsOverview";
 import SystemHealth from "./views/admin/SystemHealth";
+import AuditLogs from "./views/admin/AuditLogs";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import { Toaster } from "sonner";
 
@@ -69,6 +70,7 @@ function App() {
                         <Route path="/admin/users" element={<UserInspector />} />
                         <Route path="/admin/schools" element={<SchoolsOverview />} />
                         <Route path="/admin/system-health" element={<SystemHealth />} />
+                        <Route path="/admin/audit-logs" element={<AuditLogs />} />
                     </Route>
 
                     {/* Teacher Routes */}

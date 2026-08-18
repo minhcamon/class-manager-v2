@@ -3,6 +3,8 @@ package com.classmanager.service;
 import com.classmanager.dto.admin.AdminDTOs.TeacherRequestResponse;
 import com.classmanager.entity.TeacherRoleRequest;
 import com.classmanager.entity.User;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.enums.Role;
 import com.classmanager.enums.TeacherRequestStatus;
 import com.classmanager.exception.CustomException;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -25,6 +28,7 @@ public class TeacherApprovalEngine {
 
     private final TeacherRoleRequestRepository teacherRoleRequestRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public TeacherRoleRequest createRequest(User user) {
@@ -97,6 +101,15 @@ public class TeacherApprovalEngine {
         request.setReviewedAt(LocalDateTime.now());
         TeacherRoleRequest updated = teacherRoleRequestRepository.save(request);
 
+        auditLogService.logUserAction(
+                AuditAction.APPROVE_TEACHER_REQUEST,
+                AuditTargetEntity.TEACHER_REQUEST,
+                String.valueOf(requestId),
+                Map.of("status", "PENDING", "targetUserId", user.getId()),
+                Map.of("status", "APPROVED", "targetUserId", user.getId(), "roleAssigned", "TEACHER"),
+                "Admin approved teacher role request for user: " + user.getFullName()
+        );
+
         log.info("Teacher role request id={} APPROVED by admin id={} for user id={}", requestId, adminUserId,
                 user.getId());
         return mapToResponse(updated);
@@ -128,6 +141,15 @@ public class TeacherApprovalEngine {
         request.setReviewedBy(admin);
         request.setReviewedAt(LocalDateTime.now());
         TeacherRoleRequest updated = teacherRoleRequestRepository.save(request);
+
+        auditLogService.logUserAction(
+                AuditAction.REJECT_TEACHER_REQUEST,
+                AuditTargetEntity.TEACHER_REQUEST,
+                String.valueOf(requestId),
+                Map.of("status", "PENDING", "targetUserId", request.getUser().getId()),
+                Map.of("status", "REJECTED", "targetUserId", request.getUser().getId(), "reason", reason.trim()),
+                "Admin rejected teacher role request for user: " + request.getUser().getFullName() + ", reason: " + reason.trim()
+        );
 
         log.info("Teacher role request id={} REJECTED by admin id={} for user id={}, reason: {}", requestId,
                 adminUserId, request.getUser().getId(), reason);

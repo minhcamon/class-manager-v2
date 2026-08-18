@@ -95,6 +95,16 @@ public class AdminController {
         return ResponseEntity.ok(adminService.generateViewAsSession(userId, adminUserId));
     }
 
+    @Operation(summary = "Kết thúc phiên View-As", description = "Ghi nhận nhật ký kiểm toán khi Admin thoát chế độ quan sát.")
+    @PostMapping("/view-as/exit/{userId}")
+    public ResponseEntity<Void> exitViewAs(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        Long adminUserId = (Long) authentication.getPrincipal();
+        adminService.recordEndViewAsSession(userId, adminUserId);
+        return ResponseEntity.ok().build();
+    }
+
     @Operation(summary = "Danh sách yêu cầu cấp quyền Giáo viên", description = "Tra cứu các yêu cầu TeacherRoleRequest theo trạng thái.")
     @GetMapping("/teacher-requests")
     public ResponseEntity<Page<TeacherRequestResponse>> getTeacherRequests(

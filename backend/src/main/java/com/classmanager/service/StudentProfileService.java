@@ -25,6 +25,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.classmanager.repository.EnrollmentRepository;
 import com.classmanager.entity.Enrollment;
 import com.classmanager.enums.EnrollmentStatus;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,7 @@ public class StudentProfileService {
   private final ClassRepository classRepository;
   private final ObjectMapper objectMapper;
   private final EnrollmentRepository enrollmentRepository;
+  private final AuditLogService auditLogService;
 
   @Transactional
   public StudentProfileResponse upsertProfile(Integer enrollmentId, Integer classId,
@@ -61,7 +64,18 @@ public class StudentProfileService {
       profile.setData(objectMapper.writeValueAsString(request.getData()));
       profile.setFormTemplate(activeForm);
 
-      return mapToResponse(studentProfileRepository.save(profile));
+      StudentProfile saved = studentProfileRepository.save(profile);
+
+      auditLogService.logUserAction(
+          AuditAction.UPDATE_STUDENT_DOSSIER,
+          AuditTargetEntity.STUDENT_PROFILE,
+          String.valueOf(saved.getId()),
+          null,
+          request.getData(),
+          "Student updated dossier information"
+      );
+
+      return mapToResponse(saved);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error processing profile data JSON", e);
     }

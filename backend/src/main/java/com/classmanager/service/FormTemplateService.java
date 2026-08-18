@@ -12,6 +12,8 @@ import com.classmanager.exception.FormNotFoundException;
 import com.classmanager.exception.InvalidFormStructureException;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.FormTemplateRepository;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,6 +33,7 @@ public class FormTemplateService {
     private final FormTemplateRepository formTemplateRepository;
     private final ClassRepository classRepository;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
 
     @Transactional(rollbackFor = Exception.class)
     public FormTemplateResponse createNewVersion(Long teacherId, Integer classId, FormTemplateCreateRequest request) {
@@ -57,7 +61,22 @@ public class FormTemplateService {
                     .isActive(true)
                     .build();
 
-            return mapToResponse(formTemplateRepository.save(newForm));
+            FormTemplate savedForm = formTemplateRepository.save(newForm);
+
+            auditLogService.logUserAction(
+                    AuditAction.PUBLISH_FORM_TEMPLATE,
+                    AuditTargetEntity.FORM_TEMPLATE,
+                    String.valueOf(savedForm.getId()),
+                    null,
+                    Map.of(
+                            "title", savedForm.getTitle(),
+                            "version", savedForm.getVersion(),
+                            "classId", classId
+                    ),
+                    "Teacher published form template version " + savedForm.getVersion()
+            );
+
+            return mapToResponse(savedForm);
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Error processing form structure JSON", e);
         }

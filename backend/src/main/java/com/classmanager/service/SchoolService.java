@@ -5,6 +5,8 @@ import com.classmanager.dto.school.request.SchoolCreateRequest;
 import com.classmanager.dto.school.response.SchoolResponse;
 import com.classmanager.entity.School;
 import com.classmanager.entity.User;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.enums.Role;
 import com.classmanager.exception.CustomException;
 import com.classmanager.repository.SchoolRepository;
@@ -14,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +25,7 @@ public class SchoolService {
 
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public UserResponse createSchool(Long userId, SchoolCreateRequest request) {
@@ -43,6 +47,15 @@ public class SchoolService {
         // Associate school with teacher
         user.setSchool(savedSchool);
         User updatedUser = userRepository.save(user);
+
+        auditLogService.logUserAction(
+                AuditAction.CREATE_SCHOOL,
+                AuditTargetEntity.SCHOOL,
+                String.valueOf(savedSchool.getId()),
+                null,
+                Map.of("name", savedSchool.getName(), "address", savedSchool.getAddress() != null ? savedSchool.getAddress() : ""),
+                "Teacher created school: " + savedSchool.getName()
+        );
 
         return UserResponse.builder()
                 .username(updatedUser.getUsername())

@@ -9,6 +9,8 @@ import com.classmanager.enums.ClassStatus;
 import com.classmanager.enums.EnrollmentStatus;
 import com.classmanager.exception.ClassEndedException;
 import com.classmanager.exception.CustomException;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,7 @@ public class WeeklyReportService {
     private final ClassRepository classRepository;
     private final EnrollmentRepository enrollmentRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final AuditLogService auditLogService;
 
     public LocalDate getCurrentWeekMonday() {
         return LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
@@ -166,6 +169,36 @@ public class WeeklyReportService {
 
         weeklyReportRepository.saveAll(reportsToSave);
         currentWeekSnapshotRepository.saveAll(nextWeekSnapshots);
+
+        if (actorUserId != null) {
+            auditLogService.logUserAction(
+                    AuditAction.TRIGGER_MANUAL_WEEK_LOCK,
+                    AuditTargetEntity.WEEKLY_REPORT,
+                    String.valueOf(classId),
+                    null,
+                    Map.of(
+                            "classId", classId,
+                            "weekStartDate", weekStartDate.toString(),
+                            "studentCount", snapshots.size(),
+                            "lockedBy", lockedBy != null ? lockedBy : "TEACHER"
+                    ),
+                    "Manually locked week for class id=" + classId
+            );
+        } else {
+            auditLogService.logSystemAction(
+                    AuditAction.EXECUTE_WEEKLY_LOCK,
+                    AuditTargetEntity.SYSTEM,
+                    String.valueOf(classId),
+                    null,
+                    Map.of(
+                            "classId", classId,
+                            "weekStartDate", weekStartDate.toString(),
+                            "studentCount", snapshots.size(),
+                            "lockedBy", "SYSTEM_CRON"
+                    ),
+                    "System auto-executed weekly closeout lock for class id=" + classId
+            );
+        }
     }
 
     @Transactional(readOnly = true)

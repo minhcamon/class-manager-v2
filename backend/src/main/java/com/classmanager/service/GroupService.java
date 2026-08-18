@@ -13,6 +13,8 @@ import com.classmanager.exception.GroupNotFoundException;
 import com.classmanager.exception.ProfileNotFoundException;
 import com.classmanager.exception.GroupLeaderConflictException;
 import com.classmanager.exception.ClassNotFoundException;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.entity.Enrollment;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.GroupRepository;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,7 @@ public class GroupService {
     private final ClassRepository classRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public GroupResponse createGroup(Long teacherId, GroupCreateRequest request) {
@@ -58,7 +62,18 @@ public class GroupService {
                 .groupName(request.getGroupName())
                 .build();
 
-        return mapToResponse(groupRepository.save(group));
+        Group savedGroup = groupRepository.save(group);
+
+        auditLogService.logUserAction(
+                AuditAction.CREATE_GROUP,
+                AuditTargetEntity.GROUP,
+                String.valueOf(savedGroup.getId()),
+                null,
+                Map.of("groupName", savedGroup.getGroupName(), "classId", classEntity.getId()),
+                "Teacher created group: " + savedGroup.getGroupName()
+        );
+
+        return mapToResponse(savedGroup);
     }
 
     @Transactional
@@ -89,6 +104,9 @@ public class GroupService {
             throw new GroupLeaderConflictException();
         }
 
+        Integer oldLeaderProfileId = group.getLeader() != null && group.getLeader().getStudentProfile() != null
+                ? group.getLeader().getStudentProfile().getId() : null;
+
         // Remove previous leader role if any other group has this student as leader
         Optional<Group> previousGroup = groupRepository.findByLeaderId(enrollment.getId());
         previousGroup.ifPresent(g -> {
@@ -97,7 +115,18 @@ public class GroupService {
         });
 
         group.setLeader(enrollment);
-        return mapToResponse(groupRepository.save(group));
+        Group savedGroup = groupRepository.save(group);
+
+        auditLogService.logUserAction(
+                AuditAction.ASSIGN_GROUP_LEADER,
+                AuditTargetEntity.GROUP,
+                String.valueOf(groupId),
+                oldLeaderProfileId != null ? Map.of("leaderStudentProfileId", oldLeaderProfileId) : null,
+                Map.of("leaderStudentProfileId", studentProfileId),
+                "Teacher assigned group leader for group: " + group.getGroupName()
+        );
+
+        return mapToResponse(savedGroup);
     }
 
     @Transactional
@@ -128,6 +157,8 @@ public class GroupService {
             throw new ClassEndedException();
         }
 
+        Integer oldGroupId = enrollment.getGroup() != null ? enrollment.getGroup().getId() : null;
+
         // If student is currently leader of another group, clear that
         Optional<Group> previousGroup = groupRepository.findByLeaderId(enrollment.getId());
         previousGroup.ifPresent(g -> {
@@ -137,6 +168,15 @@ public class GroupService {
 
         enrollment.setGroup(group);
         enrollmentRepository.save(enrollment);
+
+        auditLogService.logUserAction(
+                AuditAction.TRANSFER_STUDENT_GROUP,
+                AuditTargetEntity.GROUP,
+                String.valueOf(groupId),
+                oldGroupId != null ? Map.of("studentProfileId", studentProfileId, "groupId", oldGroupId) : null,
+                Map.of("studentProfileId", studentProfileId, "groupId", groupId),
+                "Teacher transferred student into group: " + group.getGroupName()
+        );
     }
 
     @Transactional
@@ -159,6 +199,8 @@ public class GroupService {
             throw new ClassEndedException();
         }
 
+        Integer oldGroupId = enrollment.getGroup() != null ? enrollment.getGroup().getId() : null;
+
         // If the student is a leader of their current group, clear it
         Optional<Group> ledGroup = groupRepository.findByLeaderId(enrollment.getId());
         ledGroup.ifPresent(g -> {
@@ -168,6 +210,17 @@ public class GroupService {
 
         enrollment.setGroup(null);
         enrollmentRepository.save(enrollment);
+
+        if (oldGroupId != null) {
+            auditLogService.logUserAction(
+                    AuditAction.TRANSFER_STUDENT_GROUP,
+                    AuditTargetEntity.GROUP,
+                    String.valueOf(oldGroupId),
+                    Map.of("studentProfileId", studentProfileId, "groupId", oldGroupId),
+                    Map.of("studentProfileId", studentProfileId, "groupId", "NONE"),
+                    "Teacher removed student from group"
+            );
+        }
     }
 
     @Transactional(readOnly = true)

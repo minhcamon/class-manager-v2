@@ -17,9 +17,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.repository.FormTemplateRepository;
 import com.classmanager.entity.FormTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,6 +34,7 @@ public class ClassService {
     private final EnrollmentRepository enrollmentRepository;
     private final PasswordEncoder passwordEncoder;
     private final FormTemplateRepository formTemplateRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public ClassResponse createClass(Long teacherId, ClassCreateRequest request) {
@@ -79,6 +83,20 @@ public class ClassService {
                 .build();
         formTemplateRepository.save(defaultForm);
 
+        auditLogService.logUserAction(
+                AuditAction.CREATE_CLASS,
+                AuditTargetEntity.CLASS,
+                String.valueOf(savedClass.getId()),
+                null,
+                Map.of(
+                        "className", savedClass.getClassName(),
+                        "grade", savedClass.getGrade(),
+                        "classCode", savedClass.getClassCode(),
+                        "basePoint", savedClass.getBasePoint() != null ? savedClass.getBasePoint() : 100
+                ),
+                "Teacher created class: " + savedClass.getClassName()
+        );
+
         return mapToResponse(savedClass);
     }
 
@@ -88,7 +106,18 @@ public class ClassService {
                 .orElseThrow(ClassNotFoundException::new);
 
         classEntity.setStatus(ClassStatus.ENDED);
-        return mapToResponse(classRepository.save(classEntity));
+        ClassEntity updated = classRepository.save(classEntity);
+
+        auditLogService.logUserAction(
+                AuditAction.END_CLASS,
+                AuditTargetEntity.CLASS,
+                String.valueOf(classId),
+                Map.of("status", "ACTIVE"),
+                Map.of("status", "ENDED"),
+                "Teacher ended class: " + classEntity.getClassName()
+        );
+
+        return mapToResponse(updated);
     }
 
     @Transactional(readOnly = true)

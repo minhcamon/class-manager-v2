@@ -12,7 +12,6 @@ import {
 import {
   Clock,
   RotateCcw,
-  LogOut,
   CheckCircle2,
   GraduationCap,
   BookOpen,
@@ -22,7 +21,7 @@ import {
 } from "lucide-react";
 
 export default function SelectRolePage() {
-  const { user, selectRole, withdrawTeacherRequest, logout } = useAuth();
+  const { user, selectRole, withdrawTeacherRequest } = useAuth();
   const [selectedRole, setSelectedRole] = useState<"TEACHER" | "STUDENT" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);

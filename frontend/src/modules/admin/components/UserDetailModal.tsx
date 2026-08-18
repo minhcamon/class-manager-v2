@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  X,
   User,
   Mail,
   Phone,
@@ -12,6 +11,13 @@ import {
   GraduationCap,
   Clock,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import type { AdminUserDetail } from '@/types/admin';
 
 interface UserDetailModalProps {
@@ -31,24 +37,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   onOpenSupport,
   onViewAs,
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white border border-border rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col text-left">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden text-left gap-0">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 text-neutral-900 font-bold text-sm">
-            <User className="w-4 h-4 text-primary" />
+        <DialogHeader className="px-6 py-4 border-b border-neutral-100 bg-neutral-50/50 shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-neutral-900 font-bold text-base">
+            <User className="w-5 h-5 text-primary" />
             <span>Hồ sơ Chi tiết Người dùng</span>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+          </DialogTitle>
+          <DialogDescription className="text-xs text-neutral-500">
+            Thông tin định danh tài khoản, trường lớp và lịch sử yêu cầu
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
@@ -60,7 +61,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           ) : (
             <>
               {/* Profile Card */}
-              <div className="bg-neutral-50 border border-border rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary-light text-primary flex items-center justify-center font-bold text-lg border border-primary-border/20 shrink-0">
                     {userDetail.fullName?.charAt(0) || 'U'}
@@ -80,14 +81,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
                     onClick={onOpenSupport}
-                    className="flex-1 sm:flex-none px-3.5 py-2 bg-white hover:bg-neutral-100 text-neutral-700 border border-border rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-white hover:bg-neutral-100 text-neutral-700 border border-neutral-200 rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <KeyRound className="w-3.5 h-3.5 text-primary" />
                     Hỗ trợ
                   </button>
                   <button
                     onClick={onViewAs}
-                    className="flex-1 sm:flex-none px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
                   >
                     <Eye className="w-3.5 h-3.5 text-amber-600" />
                     Quan sát (View-As)
@@ -97,7 +98,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
               {/* Details Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 bg-white border border-border rounded-xl flex items-center gap-3 shadow-xs">
+                <div className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center gap-3 shadow-2xs">
                   <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 shrink-0">
                     <Mail className="w-4 h-4" />
                   </div>
@@ -107,7 +108,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-white border border-border rounded-xl flex items-center gap-3 shadow-xs">
+                <div className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center gap-3 shadow-2xs">
                   <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 shrink-0">
                     <Phone className="w-4 h-4" />
                   </div>
@@ -117,7 +118,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-white border border-border rounded-xl flex items-center gap-3 shadow-xs">
+                <div className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center gap-3 shadow-2xs">
                   <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 shrink-0">
                     <School className="w-4 h-4" />
                   </div>
@@ -131,7 +132,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
                 </div>
 
-                <div className="p-3.5 bg-white border border-border rounded-xl flex items-center gap-3 shadow-xs">
+                <div className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center gap-3 shadow-2xs">
                   <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-500 shrink-0">
                     <Calendar className="w-4 h-4" />
                   </div>
@@ -156,13 +157,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <span>Lớp học Quản lý ({userDetail.managedClasses.length})</span>
                   </div>
                   {userDetail.managedClasses.length === 0 ? (
-                    <p className="text-neutral-400 italic p-4 bg-neutral-50 rounded-xl border border-border">
+                    <p className="text-neutral-400 italic p-4 bg-neutral-50 rounded-xl border border-neutral-200">
                       Chưa khởi tạo lớp học nào.
                     </p>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {userDetail.managedClasses.map((cls) => (
-                        <div key={cls.id} className="p-3.5 bg-white border border-border rounded-xl flex items-center justify-between shadow-xs">
+                        <div key={cls.id} className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center justify-between shadow-2xs">
                           <div>
                             <p className="font-bold text-neutral-900">Lớp {cls.className} (Khối {cls.grade})</p>
                             <p className="text-[10px] text-neutral-500">Mã lớp: {cls.classCode}</p>
@@ -185,13 +186,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                     <span>Lớp học Đang tham gia</span>
                   </div>
                   {userDetail.enrolledClasses.length === 0 ? (
-                    <p className="text-neutral-400 italic p-4 bg-neutral-50 rounded-xl border border-border">
+                    <p className="text-neutral-400 italic p-4 bg-neutral-50 rounded-xl border border-neutral-200">
                       Chưa ghi danh vào lớp học nào.
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {userDetail.enrolledClasses.map((enc) => (
-                        <div key={enc.classId} className="p-3.5 bg-white border border-border rounded-xl flex items-center justify-between shadow-xs">
+                        <div key={enc.classId} className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center justify-between shadow-2xs">
                           <div>
                             <p className="font-bold text-neutral-900">Lớp {enc.className} • {enc.groupName}</p>
                             <p className="text-[10px] text-neutral-500">GVCN: {enc.teacherName}</p>
@@ -215,12 +216,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
                   <div className="space-y-2">
                     {userDetail.teacherRequests.map((req) => (
-                      <div key={req.id} className="p-3.5 bg-white border border-border rounded-xl space-y-1 shadow-xs">
+                      <div key={req.id} className="p-3.5 bg-white border border-neutral-200 rounded-xl space-y-1 shadow-2xs">
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-neutral-900">
                             Yêu cầu #{req.id} • {new Date(req.requestedAt).toLocaleString('vi-VN')}
                           </span>
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-neutral-100 border-border text-neutral-700">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold border bg-neutral-100 border-neutral-200 text-neutral-700">
                             {req.status}
                           </span>
                         </div>
@@ -235,7 +236,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
             </>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
+
+export default UserDetailModal;

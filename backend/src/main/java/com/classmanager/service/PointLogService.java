@@ -20,6 +20,8 @@ import com.classmanager.repository.PointLogRepository;
 import com.classmanager.repository.StudentProfileRepository;
 import com.classmanager.repository.UserRepository;
 import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.repository.WeeklyReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +45,7 @@ public class PointLogService {
     private final EnrollmentRepository enrollmentRepository;
     private final WeeklyReportService weeklyReportService;
     private final WeeklyReportRepository weeklyReportRepository;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public PointLogResponse createPointLog(Long currentUserId, PointLogCreateRequest request) {
@@ -98,6 +102,21 @@ public class PointLogService {
 
         PointLog saved = pointLogRepository.save(pointLog);
         weeklyReportService.syncSnapshotForStudent(targetStudent, classEntity, request.getWeekStartDate());
+
+        auditLogService.logUserAction(
+                AuditAction.CREATE_POINT_LOG,
+                AuditTargetEntity.POINT_LOG,
+                String.valueOf(saved.getId()),
+                null,
+                Map.of(
+                        "studentId", targetStudent.getId(),
+                        "pointValue", request.getPointValue(),
+                        "reason", request.getReason(),
+                        "weekStartDate", request.getWeekStartDate().toString()
+                ),
+                "Created point log: " + (request.getPointValue() > 0 ? "+" : "") + request.getPointValue() + " pts"
+        );
+
         return mapToResponse(saved);
     }
 
@@ -234,6 +253,20 @@ public class PointLogService {
         for (StudentProfile targetStudent : targetStudents) {
             weeklyReportService.syncSnapshotForStudent(targetStudent, classEntity, request.getWeekStartDate());
         }
+
+        auditLogService.logUserAction(
+                AuditAction.BATCH_POINT_EVALUATION,
+                AuditTargetEntity.POINT_LOG,
+                "batch-" + targetStudents.size(),
+                null,
+                Map.of(
+                        "studentCount", targetStudents.size(),
+                        "pointValue", request.getPointValue(),
+                        "reason", request.getReason(),
+                        "weekStartDate", request.getWeekStartDate().toString()
+                ),
+                "Batch point evaluation for " + targetStudents.size() + " students: " + (request.getPointValue() > 0 ? "+" : "") + request.getPointValue() + " pts"
+        );
     }
 
     @Transactional(readOnly = true)

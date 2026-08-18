@@ -11,9 +11,11 @@ import {
     PanelLeft,
     Eye,
     ArrowLeft,
+    ScrollText,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
 import { clearTokens, setTokens } from "@/utils/utils";
+import { auditService } from "@/services/auditService";
 
 interface AdminLayoutProps {
     children: ReactNode;
@@ -45,7 +47,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const isReadOnly = Boolean(user?.readOnly);
 
-    const handleExitViewAs = () => {
+    const handleExitViewAs = async () => {
+        if (user?.id) {
+            try {
+                await auditService.exitViewAsSession(user.id);
+            } catch (err) {
+                console.debug("Failed to log exit view-as:", err);
+            }
+        }
         const adminToken = localStorage.getItem("admin_master_token");
         if (adminToken) {
             setTokens(adminToken);
@@ -85,6 +94,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     ];
 
     const systemItems = [
+        {
+            label: "Nhật Ký Kiểm Toán",
+            path: "/admin/audit-logs",
+            icon: ScrollText,
+        },
         {
             label: "Sức khỏe Hệ thống",
             path: "/admin/system-health",

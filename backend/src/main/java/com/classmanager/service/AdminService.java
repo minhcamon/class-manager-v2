@@ -4,6 +4,8 @@ import com.classmanager.dto.admin.AdminDTOs.*;
 import com.classmanager.entity.ClassEntity;
 import com.classmanager.entity.Enrollment;
 import com.classmanager.entity.User;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.enums.Role;
 import com.classmanager.enums.TeacherRequestStatus;
 import com.classmanager.exception.CustomException;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,6 +38,7 @@ public class AdminService {
     private final SystemHealthService systemHealthService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public Page<AdminUserSearchResponse> searchUsers(String query, Role role, Pageable pageable) {
@@ -149,21 +153,46 @@ public class AdminService {
                 }
                 user.setPasswordHash(passwordEncoder.encode(request.getNewPassword().trim()));
                 log.info("Admin id={} RESET_PASSWORD for user id={}, reason: {}", adminUserId, user.getId(), request.getReason());
+                auditLogService.logUserAction(
+                        AuditAction.SUPPORT_RESET_PASSWORD,
+                        AuditTargetEntity.USER,
+                        String.valueOf(user.getId()),
+                        null,
+                        Map.of("targetUserId", user.getId(), "reason", request.getReason()),
+                        "Admin reset password for user: " + user.getFullName() + ", reason: " + request.getReason()
+                );
                 break;
 
             case "UNLOCK_USER":
                 log.info("Admin id={} UNLOCK_USER for user id={}, reason: {}", adminUserId, user.getId(), request.getReason());
+                auditLogService.logUserAction(
+                        AuditAction.SUPPORT_UNLOCK_USER,
+                        AuditTargetEntity.USER,
+                        String.valueOf(user.getId()),
+                        null,
+                        Map.of("targetUserId", user.getId(), "reason", request.getReason()),
+                        "Admin unlocked user: " + user.getFullName() + ", reason: " + request.getReason()
+                );
                 break;
 
             case "CHANGE_ROLE":
                 if (request.getNewRole() == null) {
                     throw new CustomException(HttpStatus.BAD_REQUEST, "INVALID_ROLE", "New role must be specified.");
                 }
+                Role oldRole = user.getRole();
                 user.setRole(request.getNewRole());
                 if (request.getNewRole() == Role.ADMIN) {
                     user.setSchool(null); // Admin accounts do not belong to any specific school
                 }
                 log.info("Admin id={} CHANGE_ROLE to {} for user id={}, reason: {}", adminUserId, request.getNewRole(), user.getId(), request.getReason());
+                auditLogService.logUserAction(
+                        AuditAction.SUPPORT_CHANGE_ROLE,
+                        AuditTargetEntity.USER,
+                        String.valueOf(user.getId()),
+                        oldRole != null ? Map.of("role", oldRole.name()) : null,
+                        Map.of("role", request.getNewRole().name(), "reason", request.getReason()),
+                        "Admin changed role for user: " + user.getFullName() + " to " + request.getNewRole() + ", reason: " + request.getReason()
+                );
                 break;
 
             default:
@@ -174,7 +203,7 @@ public class AdminService {
         return getUserDetail(updated.getId());
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ViewAsSessionResponse generateViewAsSession(Long targetUserId, Long adminUserId) {
         User targetUser = userRepository.findByIdWithSchool(targetUserId)
                 .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "Target user not found"));
@@ -198,6 +227,15 @@ public class AdminService {
                 classId
         );
 
+        auditLogService.logUserAction(
+                AuditAction.ADMIN_START_VIEW_AS,
+                AuditTargetEntity.USER,
+                String.valueOf(targetUserId),
+                null,
+                Map.of("targetUserId", targetUserId, "targetRole", targetUser.getRole() != null ? targetUser.getRole().name() : "NONE"),
+                "Admin started view-as observation session for user: " + targetUser.getFullName()
+        );
+
         log.info("Admin id={} generated View-As token for target user id={}", adminUserId, targetUserId);
 
         return ViewAsSessionResponse.builder()
@@ -209,6 +247,19 @@ public class AdminService {
                 .readOnly(true)
                 .expiresIn(jwtUtil.getExpirationMs() / 1000)
                 .build();
+    }
+
+    @Transactional
+    public void recordEndViewAsSession(Long targetUserId, Long adminUserId) {
+        auditLogService.logUserAction(
+                AuditAction.ADMIN_END_VIEW_AS,
+                AuditTargetEntity.USER,
+                String.valueOf(targetUserId),
+                null,
+                Map.of("targetUserId", targetUserId),
+                "Admin exited view-as observation session"
+        );
+        log.info("Admin id={} ended View-As session for target user id={}", adminUserId, targetUserId);
     }
 
     @Transactional(readOnly = true)

@@ -4,6 +4,9 @@ import com.classmanager.entity.*;
 import com.classmanager.enums.ClassStatus;
 import com.classmanager.enums.EnrollmentStatus;
 import com.classmanager.enums.Role;
+import com.classmanager.enums.AuditAction;
+import com.classmanager.enums.AuditActorType;
+import com.classmanager.enums.AuditTargetEntity;
 import com.classmanager.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
@@ -30,13 +34,19 @@ public class DataInitializer implements CommandLineRunner {
     private final FormTemplateRepository formTemplateRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final CurrentWeekSnapshotRepository snapshotRepository;
+    private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        seedInitialUsersAndClasses();
+        seedAuditLogsIfEmpty();
+    }
+
+    private void seedInitialUsersAndClasses() {
         if (userRepository.count() > 0) {
-            log.info("Database already initialized (User count = {}). Skipping DataInitializer.", userRepository.count());
+            log.info("Database already initialized (User count = {}). Skipping user/class seeding.", userRepository.count());
             return;
         }
 
@@ -141,5 +151,284 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Admin Dev Login   : username='admin_dev', password='123456'");
         log.info("Student Dev Login : username='student_nam', password='123456'");
         log.info("-------------------------------------------------------");
+    }
+
+    private void seedAuditLogsIfEmpty() {
+        if (auditLogRepository.count() > 0) {
+            log.info("Audit logs already exist (Count = {}). Skipping AuditLog seed.", auditLogRepository.count());
+            return;
+        }
+
+        log.info("Seeding sample Audit Logs for testing Feature 8...");
+
+        User admin = userRepository.findByUsername("admin_dev").orElse(null);
+        User teacher = userRepository.findByUsername("teacher_dev").orElse(null);
+        User student = userRepository.findByUsername("student_nam").orElse(null);
+
+        Long adminId = admin != null ? admin.getId() : 1L;
+        Long teacherId = teacher != null ? teacher.getId() : 2L;
+        Long studentId = student != null ? student.getId() : 3L;
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<AuditLog> sampleLogs = List.of(
+                // 1. SELECT_ROLE
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(studentId)
+                        .actorName("Lê Văn Nam")
+                        .actorRole("STUDENT")
+                        .targetEntity(AuditTargetEntity.USER)
+                        .targetId(String.valueOf(studentId))
+                        .action(AuditAction.SELECT_ROLE)
+                        .oldValue(null)
+                        .newValue("{\"role\":\"STUDENT\"}")
+                        .description("User selected role: STUDENT")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(7).minusHours(4))
+                        .build(),
+
+                // 2. CREATE_SCHOOL
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.SCHOOL)
+                        .targetId("1")
+                        .action(AuditAction.CREATE_SCHOOL)
+                        .oldValue(null)
+                        .newValue("{\"name\":\"Trường THPT Chuyên Hà Nội - Amsterdam\",\"address\":\"1 Hoàng Minh Giám, Cầu Giấy, Hà Nội\"}")
+                        .description("Teacher created school: Trường THPT Chuyên Hà Nội - Amsterdam")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(7).minusHours(2))
+                        .build(),
+
+                // 3. CREATE_CLASS
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.CLASS)
+                        .targetId("1")
+                        .action(AuditAction.CREATE_CLASS)
+                        .oldValue(null)
+                        .newValue("{\"className\":\"10A1\",\"grade\":10,\"classCode\":\"10A1-2026\",\"basePoint\":100}")
+                        .description("Teacher created class: 10A1")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(6).minusHours(8))
+                        .build(),
+
+                // 4. CREATE_GROUP
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.GROUP)
+                        .targetId("1")
+                        .action(AuditAction.CREATE_GROUP)
+                        .oldValue(null)
+                        .newValue("{\"groupName\":\"Tổ 1\",\"classId\":1}")
+                        .description("Teacher created group: Tổ 1")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(6).minusHours(6))
+                        .build(),
+
+                // 5. ASSIGN_GROUP_LEADER
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.GROUP)
+                        .targetId("1")
+                        .action(AuditAction.ASSIGN_GROUP_LEADER)
+                        .oldValue(null)
+                        .newValue("{\"leaderStudentProfileId\":1}")
+                        .description("Teacher assigned group leader for group: Tổ 1")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(5).minusHours(3))
+                        .build(),
+
+                // 6. PUBLISH_FORM_TEMPLATE
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.FORM_TEMPLATE)
+                        .targetId("1")
+                        .action(AuditAction.PUBLISH_FORM_TEMPLATE)
+                        .oldValue(null)
+                        .newValue("{\"title\":\"Mẫu Sơ yếu Lý lịch Học sinh 10A1\",\"version\":1,\"classId\":1}")
+                        .description("Teacher published form template version 1")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(5).minusHours(1))
+                        .build(),
+
+                // 7. UPDATE_STUDENT_DOSSIER
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(studentId)
+                        .actorName("Lê Văn Nam")
+                        .actorRole("STUDENT")
+                        .targetEntity(AuditTargetEntity.STUDENT_PROFILE)
+                        .targetId("1")
+                        .action(AuditAction.UPDATE_STUDENT_DOSSIER)
+                        .oldValue("{\"hobby\":\"Chơi cờ vua\"}")
+                        .newValue("{\"hobby\":\"Đọc sách khoa học, Lập trình Robotics\"}")
+                        .description("Student updated dossier information")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(4).minusHours(5))
+                        .build(),
+
+                // 8. CREATE_POINT_LOG
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.POINT_LOG)
+                        .targetId("101")
+                        .action(AuditAction.CREATE_POINT_LOG)
+                        .oldValue(null)
+                        .newValue("{\"studentId\":1,\"pointValue\":5,\"reason\":\"Hăng hái phát biểu xây dựng bài học môn Toán\",\"weekStartDate\":\"2026-08-17\"}")
+                        .description("Created point log: +5 pts")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(3).minusHours(4))
+                        .build(),
+
+                // 9. BATCH_POINT_EVALUATION
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(teacherId)
+                        .actorName("Nguyễn Văn Giáo Viên")
+                        .actorRole("TEACHER")
+                        .targetEntity(AuditTargetEntity.POINT_LOG)
+                        .targetId("batch-4")
+                        .action(AuditAction.BATCH_POINT_EVALUATION)
+                        .oldValue(null)
+                        .newValue("{\"studentCount\":4,\"pointValue\":10,\"reason\":\"Vệ sinh lớp học sạch sẽ, ngăn nắp tuần 33\",\"weekStartDate\":\"2026-08-17\"}")
+                        .description("Batch point evaluation for 4 students: +10 pts")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(2).minusHours(7))
+                        .build(),
+
+                // 10. EXECUTE_WEEKLY_LOCK
+                AuditLog.builder()
+                        .actorType(AuditActorType.SYSTEM)
+                        .actorId(null)
+                        .actorName("Hệ thống tự động")
+                        .actorRole("SYSTEM")
+                        .targetEntity(AuditTargetEntity.SYSTEM)
+                        .targetId("1")
+                        .action(AuditAction.EXECUTE_WEEKLY_LOCK)
+                        .oldValue(null)
+                        .newValue("{\"classId\":1,\"weekStartDate\":\"2026-08-10\",\"studentCount\":4,\"lockedBy\":\"SYSTEM_CRON\"}")
+                        .description("System auto-executed weekly closeout lock for class id=1")
+                        .ipAddress(null)
+                        .userAgent(null)
+                        .createdAt(now.minusDays(2).minusHours(1))
+                        .build(),
+
+                // 11. APPROVE_TEACHER_REQUEST
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(adminId)
+                        .actorName("Quản trị viên Hệ thống")
+                        .actorRole("ADMIN")
+                        .targetEntity(AuditTargetEntity.TEACHER_REQUEST)
+                        .targetId("1")
+                        .action(AuditAction.APPROVE_TEACHER_REQUEST)
+                        .oldValue("{\"status\":\"PENDING\",\"targetUserId\":2}")
+                        .newValue("{\"status\":\"APPROVED\",\"targetUserId\":2,\"roleAssigned\":\"TEACHER\"}")
+                        .description("Admin approved teacher role request for user: Nguyễn Văn Giáo Viên")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusDays(1).minusHours(6))
+                        .build(),
+
+                // 12. SUPPORT_CHANGE_ROLE
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(adminId)
+                        .actorName("Quản trị viên Hệ thống")
+                        .actorRole("ADMIN")
+                        .targetEntity(AuditTargetEntity.USER)
+                        .targetId("4")
+                        .action(AuditAction.SUPPORT_CHANGE_ROLE)
+                        .oldValue("{\"role\":\"STUDENT\"}")
+                        .newValue("{\"role\":\"TEACHER\",\"reason\":\"Cấp quyền đặc cách cán bộ trợ giảng bộ môn\"}")
+                        .description("Admin changed role for user: Phạm Quốc Dũng to TEACHER, reason: Cấp quyền đặc cách cán bộ trợ giảng bộ môn")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusHours(8))
+                        .build(),
+
+                // 13. SUPPORT_RESET_PASSWORD
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(adminId)
+                        .actorName("Quản trị viên Hệ thống")
+                        .actorRole("ADMIN")
+                        .targetEntity(AuditTargetEntity.USER)
+                        .targetId("3")
+                        .action(AuditAction.SUPPORT_RESET_PASSWORD)
+                        .oldValue(null)
+                        .newValue("{\"targetUserId\":3,\"reason\":\"Học sinh quên mật khẩu đăng nhập cổng portal\"}")
+                        .description("Admin reset password for user: Trần Thị Hoa, reason: Học sinh quên mật khẩu đăng nhập cổng portal")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusHours(4))
+                        .build(),
+
+                // 14. ADMIN_START_VIEW_AS
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(adminId)
+                        .actorName("Quản trị viên Hệ thống")
+                        .actorRole("ADMIN")
+                        .targetEntity(AuditTargetEntity.USER)
+                        .targetId(String.valueOf(teacherId))
+                        .action(AuditAction.ADMIN_START_VIEW_AS)
+                        .oldValue(null)
+                        .newValue("{\"targetUserId\":" + teacherId + ",\"targetRole\":\"TEACHER\"}")
+                        .description("Admin started view-as observation session for user: Nguyễn Văn Giáo Viên")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusMinutes(30))
+                        .build(),
+
+                // 15. ADMIN_END_VIEW_AS
+                AuditLog.builder()
+                        .actorType(AuditActorType.USER)
+                        .actorId(adminId)
+                        .actorName("Quản trị viên Hệ thống")
+                        .actorRole("ADMIN")
+                        .targetEntity(AuditTargetEntity.USER)
+                        .targetId(String.valueOf(teacherId))
+                        .action(AuditAction.ADMIN_END_VIEW_AS)
+                        .oldValue(null)
+                        .newValue("{\"targetUserId\":" + teacherId + "}")
+                        .description("Admin exited view-as observation session")
+                        .ipAddress("127.0.0.1")
+                        .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.0.0")
+                        .createdAt(now.minusMinutes(5))
+                        .build()
+        );
+
+        auditLogRepository.saveAll(sampleLogs);
+        log.info("Successfully seeded {} sample Audit Log records!", sampleLogs.size());
     }
 }
