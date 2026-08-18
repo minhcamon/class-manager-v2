@@ -134,6 +134,19 @@ public class AuthController {
         return ResponseEntity.ok(APIResponse.success("Role selected successfully", response));
     }
 
+    @PostMapping("/teacher-request/withdraw")
+    @Operation(summary = "Hủy yêu cầu cấp vai trò Giáo viên", description = "Cho phép người dùng rút lại yêu cầu TeacherRoleRequest đang ở trạng thái PENDING để có thể chọn lại vai trò khác.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Hủy yêu cầu thành công"),
+            @ApiResponse(responseCode = "400", description = "Không thể hủy do không ở trạng thái PENDING"),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy yêu cầu")
+    })
+    public ResponseEntity<APIResponse<UserResponse>> withdrawTeacherRequest() {
+        Long userId = getCurrentUserId();
+        UserResponse response = authService.withdrawTeacherRequest(userId);
+        return ResponseEntity.ok(APIResponse.success("Teacher request withdrawn successfully", response));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Lấy thông tin tài khoản hiện tại", description = "Lấy thông tin chi tiết của tài khoản đang đăng nhập thông qua Bearer Token.")
     @ApiResponses(value = {

@@ -149,6 +149,15 @@ public class AuthService {
         return mapToUserResponse(updatedUser);
     }
 
+    @Transactional
+    public UserResponse withdrawTeacherRequest(Long userId) {
+        User user = userRepository.findByIdWithSchool(userId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+
+        teacherApprovalEngine.withdrawRequest(userId);
+        return mapToUserResponse(user);
+    }
+
     @Transactional(readOnly = true)
     public UserResponse getMe(Long userId) {
         User user = userRepository.findByIdWithSchool(userId)

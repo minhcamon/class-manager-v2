@@ -28,11 +28,16 @@ public class TeacherApprovalEngine {
 
     @Transactional
     public TeacherRoleRequest createRequest(User user) {
-        // BR-ADMIN-09: Một User chỉ được có tối đa một TeacherRoleRequest ở trạng thái
-        // PENDING
-        if (teacherRoleRequestRepository.existsByUserIdAndStatus(user.getId(), TeacherRequestStatus.PENDING)) {
-            throw new CustomException(HttpStatus.CONFLICT, "PENDING_REQUEST_EXISTS",
-                    "User already has a pending teacher role request.");
+        TeacherRoleRequest latestReq = teacherRoleRequestRepository.findTopByUserIdOrderByRequestedAtDesc(user.getId()).orElse(null);
+        if (latestReq != null) {
+            if (latestReq.getStatus() == TeacherRequestStatus.PENDING) {
+                throw new CustomException(HttpStatus.CONFLICT, "PENDING_REQUEST_EXISTS",
+                        "User already has a pending teacher role request.");
+            }
+            if (latestReq.getStatus() == TeacherRequestStatus.WITHDRAWAL) {
+                throw new CustomException(HttpStatus.FORBIDDEN, "TEACHER_REQUEST_WITHDRAWN",
+                        "Bạn đã rút lại yêu cầu Giáo viên, hiện tại chỉ có thể tiếp tục với vai trò Học sinh.");
+            }
         }
 
         if (user.getRole() == Role.TEACHER) {
@@ -48,6 +53,22 @@ public class TeacherApprovalEngine {
         TeacherRoleRequest saved = teacherRoleRequestRepository.save(request);
         log.info("Teacher role request created for user id={}", user.getId());
         return saved;
+    }
+
+    @Transactional
+    public void withdrawRequest(Long userId) {
+        TeacherRoleRequest request = teacherRoleRequestRepository.findTopByUserIdOrderByRequestedAtDesc(userId)
+                .orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "REQUEST_NOT_FOUND",
+                        "No teacher role request found for user."));
+
+        if (request.getStatus() != TeacherRequestStatus.PENDING) {
+            throw new CustomException(HttpStatus.BAD_REQUEST, "CANNOT_WITHDRAW",
+                    "Only PENDING teacher requests can be withdrawn.");
+        }
+
+        request.setStatus(TeacherRequestStatus.WITHDRAWAL);
+        teacherRoleRequestRepository.save(request);
+        log.info("Teacher role request id={} updated to WITHDRAWAL for user id={}", request.getId(), userId);
     }
 
     @Transactional

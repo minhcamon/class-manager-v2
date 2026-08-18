@@ -63,6 +63,12 @@ export const TeacherRequestTable: React.FC<TeacherRequestTableProps> = ({
       text: 'text-danger-text',
       icon: XCircle,
     },
+    WITHDRAWAL: {
+      label: 'Đã rút đơn',
+      bg: 'bg-neutral-100 border-neutral-300',
+      text: 'text-neutral-600',
+      icon: Clock,
+    },
   };
 
   return (

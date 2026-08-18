@@ -1,6 +1,6 @@
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT';
 
-export type TeacherRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type TeacherRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWAL';
 
 export interface AdminUser {
   id: number;

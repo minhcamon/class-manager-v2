@@ -16,6 +16,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   selectRole: (role: string) => Promise<void>;
+  withdrawTeacherRequest: () => Promise<void>;
   createSchool: (name: string, address: string) => Promise<void>;
   syncLeaderStatus: () => Promise<void>;
 }
@@ -133,6 +134,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("user", JSON.stringify(enrichedUser));
   };
 
+  const withdrawTeacherRequest = async () => {
+    await authService.withdrawTeacherRequest();
+    // Update local user state to set teacherRequestStatus as WITHDRAWAL
+    if (user) {
+      const updatedUser = { ...user, teacherRequestStatus: 'WITHDRAWAL' };
+      setUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+    }
+  };
+
   const createSchool = async (name: string, address: string) => {
     await authService.createSchool(name, address);
     // Refresh token to get updated JWT claims containing the new schoolId
@@ -162,6 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     logout,
     checkAuth,
     selectRole,
+    withdrawTeacherRequest,
     createSchool,
     syncLeaderStatus,
   };

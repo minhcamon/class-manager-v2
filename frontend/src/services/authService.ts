@@ -26,6 +26,7 @@ export interface UserResponse {
   avatarUrl: string | null;
   createdAt: string;
   classId?: number | null;
+  teacherRequestStatus?: string | null;
 }
 
 const authService = {
@@ -95,7 +96,8 @@ const authService = {
       avatarUrl: u.avatarUrl,
       role: u.role,
       schoolName: u.schoolName,
-      classId: u.classId ?? undefined
+      classId: u.classId ?? undefined,
+      teacherRequestStatus: u.teacherRequestStatus ?? null
     };
   },
 
@@ -103,6 +105,14 @@ const authService = {
     const response = await api.put<APIResponse<UserResponse>>('/auth/select-role', { role });
     if (!response.data.success) {
       throw new Error(response.data.message || 'Chọn vai trò thất bại!');
+    }
+    return response.data.data;
+  },
+
+  withdrawTeacherRequest: async (): Promise<UserResponse> => {
+    const response = await api.post<APIResponse<UserResponse>>('/auth/teacher-request/withdraw');
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Hủy yêu cầu giáo viên thất bại!');
     }
     return response.data.data;
   },
