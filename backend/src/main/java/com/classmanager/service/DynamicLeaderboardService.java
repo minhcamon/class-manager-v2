@@ -5,7 +5,6 @@ import com.classmanager.dto.school.response.WeeklyLeaderboardResponse;
 import com.classmanager.entity.ClassEntity;
 import com.classmanager.entity.Enrollment;
 import com.classmanager.entity.Group;
-import com.classmanager.entity.StudentProfile;
 import com.classmanager.enums.EnrollmentStatus;
 import com.classmanager.exception.CustomException;
 import com.classmanager.repository.ClassRepository;
@@ -44,8 +43,14 @@ public class DynamicLeaderboardService {
         List<Group> classGroups = groupRepository.findByClassEntityId(classId);
 
         List<StudentRankingProjection> totals = behaviorRepository.aggregateAcademicPointsByClass(classId, academicYear);
-        Map<Integer, Integer> scoreMap = totals.stream()
-                .collect(Collectors.toMap(StudentRankingProjection::getStudentId, StudentRankingProjection::getTotalPoints));
+        Map<Integer, Integer> scoreMap = new HashMap<>();
+        if (totals != null) {
+            for (StudentRankingProjection p : totals) {
+                if (p != null && p.getStudentId() != null) {
+                    scoreMap.put(p.getStudentId(), p.getTotalPoints() != null ? p.getTotalPoints().intValue() : 0);
+                }
+            }
+        }
 
         int basePoint = classEntity.getBasePoint();
         List<AcademicLeaderboardResponse.StudentRankingEntry> studentEntries = new ArrayList<>();
@@ -132,8 +137,14 @@ public class DynamicLeaderboardService {
 
         List<StudentRankingProjection> weekTotals =
                 behaviorRepository.aggregateWeeklyPointsByClassAndWeek(classId, academicYear, weekNumber);
-        Map<Integer, Integer> scoreMap = weekTotals.stream()
-                .collect(Collectors.toMap(StudentRankingProjection::getStudentId, StudentRankingProjection::getTotalPoints));
+        Map<Integer, Integer> scoreMap = new HashMap<>();
+        if (weekTotals != null) {
+            for (StudentRankingProjection p : weekTotals) {
+                if (p != null && p.getStudentId() != null) {
+                    scoreMap.put(p.getStudentId(), p.getTotalPoints() != null ? p.getTotalPoints().intValue() : 0);
+                }
+            }
+        }
 
         List<WeeklyLeaderboardResponse.StudentWeeklyRankingEntry> studentEntries = new ArrayList<>();
 

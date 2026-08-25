@@ -4,6 +4,7 @@ import com.classmanager.entity.*;
 import com.classmanager.enums.ClassStatus;
 import com.classmanager.enums.EnrollmentStatus;
 import com.classmanager.enums.Role;
+import com.classmanager.enums.BehaviorType;
 import com.classmanager.enums.AuditAction;
 import com.classmanager.enums.AuditActorType;
 import com.classmanager.enums.AuditTargetEntity;
@@ -35,12 +36,14 @@ public class DataInitializer implements CommandLineRunner {
     private final StudentProfileRepository studentProfileRepository;
     private final CurrentWeekSnapshotRepository snapshotRepository;
     private final AuditLogRepository auditLogRepository;
+    private final StudentWeeklyBehaviorRepository behaviorRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
         seedInitialUsersAndClasses();
+        seedMockStudentsForClass1IfFewerThan20();
         seedAuditLogsIfEmpty();
     }
 
@@ -430,5 +433,223 @@ public class DataInitializer implements CommandLineRunner {
 
         auditLogRepository.saveAll(sampleLogs);
         log.info("Successfully seeded {} sample Audit Log records!", sampleLogs.size());
+    }
+
+    private void seedMockStudentsForClass1IfFewerThan20() {
+        ClassEntity classEntity = classRepository.findById(1).orElse(null);
+        if (classEntity == null) return;
+
+        List<Enrollment> existingEnrollments = enrollmentRepository.findByClassEntityIdAndStatus(1, EnrollmentStatus.ACTIVE);
+        if (existingEnrollments != null && existingEnrollments.size() >= 20) {
+            log.info("Class 1 already has {} students. Skipping mock data seeding.", existingEnrollments.size());
+            return;
+        }
+
+        log.info("Seeding 20 realistic students and weekly behaviors for Class 1 (10A1)...");
+
+        // Ensure Groups 1..4 exist
+        List<Group> groups = groupRepository.findByClassEntityId(1);
+        Group g1 = groups.stream().filter(g -> g.getGroupName().contains("1")).findFirst()
+                .orElseGet(() -> groupRepository.save(Group.builder().classEntity(classEntity).groupName("Tổ 1").build()));
+        Group g2 = groups.stream().filter(g -> g.getGroupName().contains("2")).findFirst()
+                .orElseGet(() -> groupRepository.save(Group.builder().classEntity(classEntity).groupName("Tổ 2").build()));
+        Group g3 = groups.stream().filter(g -> g.getGroupName().contains("3")).findFirst()
+                .orElseGet(() -> groupRepository.save(Group.builder().classEntity(classEntity).groupName("Tổ 3").build()));
+        Group g4 = groups.stream().filter(g -> g.getGroupName().contains("4")).findFirst()
+                .orElseGet(() -> groupRepository.save(Group.builder().classEntity(classEntity).groupName("Tổ 4").build()));
+        Group[] groupList = new Group[]{g1, g2, g3, g4};
+
+        FormTemplate formTemplate = formTemplateRepository.findByClassEntityIdAndIsActiveTrue(1).orElse(null);
+        School school = classEntity.getSchool();
+        User teacher = classEntity.getTeacher();
+
+        String[][] mockStudentData = {
+            // Tổ 1
+            {"student_nam", "Lê Văn Nam", "0987654301", "0"},
+            {"student_hoa", "Trần Thị Hoa", "0987654302", "0"},
+            {"student_minhanh", "Nguyễn Minh Anh", "0987654303", "0"},
+            {"student_duchuy", "Đỗ Đức Huy", "0987654304", "0"},
+            {"student_thimai", "Vũ Thị Mai", "0987654305", "0"},
+            // Tổ 2
+            {"student_dung", "Phạm Quốc Dũng", "0987654306", "1"},
+            {"student_thutrang", "Bùi Thu Trang", "0987654307", "1"},
+            {"student_quanghai", "Đinh Quang Hải", "0987654308", "1"},
+            {"student_baongoc", "Dương Bảo Ngọc", "0987654309", "1"},
+            {"student_giabao", "Ngô Gia Bảo", "0987654310", "1"},
+            // Tổ 3
+            {"student_linh", "Hoàng Phương Linh", "0987654311", "2"},
+            {"student_khanhhuyen", "Lý Khánh Huyền", "0987654312", "2"},
+            {"student_tuankiet", "Trịnh Tuấn Kiệt", "0987654313", "2"},
+            {"student_thaonguyen", "Mai Thảo Nguyên", "0987654314", "2"},
+            {"student_trongtin", "Phan Trọng Tín", "0987654315", "2"},
+            // Tổ 4
+            {"student_nhatminh", "Đoàn Nhật Minh", "0987654316", "3"},
+            {"student_phuongthao", "Hà Phương Thảo", "0987654317", "3"},
+            {"student_quochung", "Chu Quốc Hưng", "0987654318", "3"},
+            {"student_kimngan", "Tạ Kim Ngân", "0987654319", "3"},
+            {"student_baotram", "Lâm Bảo Trâm", "0987654320", "3"}
+        };
+
+        for (String[] raw : mockStudentData) {
+            String username = raw[0];
+            String fullName = raw[1];
+            String phone = raw[2];
+            int groupIdx = Integer.parseInt(raw[3]);
+            Group group = groupList[groupIdx];
+
+            User user = userRepository.findByUsername(username).orElseGet(() ->
+                userRepository.save(User.builder()
+                        .username(username)
+                        .passwordHash(passwordEncoder.encode("123456"))
+                        .fullName(fullName)
+                        .phoneNumber(phone)
+                        .role(Role.STUDENT)
+                        .school(school)
+                        .build())
+            );
+
+            Enrollment enrollment = enrollmentRepository.findByUserId(user.getId()).orElseGet(() ->
+                enrollmentRepository.save(Enrollment.builder()
+                        .user(user)
+                        .classEntity(classEntity)
+                        .group(group)
+                        .status(EnrollmentStatus.ACTIVE)
+                        .build())
+            );
+
+            // Ensure group is assigned
+            if (enrollment.getGroup() == null || !enrollment.getGroup().getId().equals(group.getId())) {
+                enrollment.setGroup(group);
+                enrollment = enrollmentRepository.save(enrollment);
+            }
+
+            final Integer enrollmentId = enrollment.getId();
+
+            // Create profile
+            StudentProfile profile = studentProfileRepository.findByEnrollmentId(enrollmentId).orElseGet(() ->
+                studentProfileRepository.save(StudentProfile.builder()
+                        .enrollmentId(enrollmentId)
+                        .formTemplate(formTemplate)
+                        .data("{}")
+                        .build())
+            );
+
+            // Set group leader for first student in each group
+            if (raw[0].equals("student_nam") || raw[0].equals("student_dung") || raw[0].equals("student_linh") || raw[0].equals("student_nhatminh")) {
+                group.setLeader(enrollment);
+                groupRepository.save(group);
+            }
+
+            // Seed behaviors for weeks 1, 2, 3, 4 if student has none
+            List<StudentWeeklyBehavior> existingBehaviors = behaviorRepository.findByStudentProfileIdAndAcademicYearAndWeekNumberOrderByCreatedAtDesc(profile.getId(), 2026, 1);
+            if (existingBehaviors.isEmpty()) {
+                seedBehaviorsForStudent(classEntity, profile, teacher);
+            }
+        }
+
+        log.info("Successfully seeded 20 students and weekly behaviors for Class 1!");
+    }
+
+    private void seedBehaviorsForStudent(ClassEntity classEntity, StudentProfile profile, User teacher) {
+        int seed = profile.getId();
+        // Week 1
+        behaviorRepository.save(StudentWeeklyBehavior.builder()
+                .studentProfile(profile)
+                .classEntity(classEntity)
+                .academicYear(2026)
+                .semester(1)
+                .weekNumber(1)
+                .ruleName(seed % 2 == 0 ? "Hăng hái phát biểu bài" : "Đạt điểm 10 kiểm tra 15p")
+                .type(BehaviorType.BONUS)
+                .unitPoint(seed % 2 == 0 ? 5 : 10)
+                .quantity(1)
+                .totalPoints(seed % 2 == 0 ? 5 : 10)
+                .dayOfWeek("Thứ 2")
+                .createdByUser(teacher)
+                .build());
+
+        if (seed % 3 == 0) {
+            behaviorRepository.save(StudentWeeklyBehavior.builder()
+                    .studentProfile(profile)
+                    .classEntity(classEntity)
+                    .academicYear(2026)
+                    .semester(1)
+                    .weekNumber(1)
+                    .ruleName("Nói chuyện riêng trong giờ")
+                    .type(BehaviorType.PENALTY)
+                    .unitPoint(-2)
+                    .quantity(1)
+                    .totalPoints(-2)
+                    .dayOfWeek("Thứ 4")
+                    .createdByUser(teacher)
+                    .build());
+        }
+
+        // Week 2
+        behaviorRepository.save(StudentWeeklyBehavior.builder()
+                .studentProfile(profile)
+                .classEntity(classEntity)
+                .academicYear(2026)
+                .semester(1)
+                .weekNumber(2)
+                .ruleName("Làm bài tập đầy đủ, sạch đẹp")
+                .type(BehaviorType.BONUS)
+                .unitPoint(5)
+                .quantity(seed % 2 == 0 ? 2 : 1)
+                .totalPoints(seed % 2 == 0 ? 10 : 5)
+                .dayOfWeek("Thứ 3")
+                .createdByUser(teacher)
+                .build());
+
+        if (seed % 4 == 0) {
+            behaviorRepository.save(StudentWeeklyBehavior.builder()
+                    .studentProfile(profile)
+                    .classEntity(classEntity)
+                    .academicYear(2026)
+                    .semester(1)
+                    .weekNumber(2)
+                    .ruleName("Đi học muộn không lý do")
+                    .type(BehaviorType.PENALTY)
+                    .unitPoint(-5)
+                    .quantity(1)
+                    .totalPoints(-5)
+                    .dayOfWeek("Thứ 6")
+                    .createdByUser(teacher)
+                    .build());
+        }
+
+        // Week 3
+        if (seed % 2 != 0) {
+            behaviorRepository.save(StudentWeeklyBehavior.builder()
+                    .studentProfile(profile)
+                    .classEntity(classEntity)
+                    .academicYear(2026)
+                    .semester(1)
+                    .weekNumber(3)
+                    .ruleName("Giúp đỡ bạn tiến bộ trong học tập")
+                    .type(BehaviorType.BONUS)
+                    .unitPoint(5)
+                    .quantity(1)
+                    .totalPoints(5)
+                    .dayOfWeek("Thứ 5")
+                    .createdByUser(teacher)
+                    .build());
+        }
+
+        // Week 4
+        behaviorRepository.save(StudentWeeklyBehavior.builder()
+                .studentProfile(profile)
+                .classEntity(classEntity)
+                .academicYear(2026)
+                .semester(1)
+                .weekNumber(4)
+                .ruleName("Đóng góp ý kiến xây dựng bài sôi nổi")
+                .type(BehaviorType.BONUS)
+                .unitPoint(2)
+                .quantity(2)
+                .totalPoints(4)
+                .dayOfWeek("Thứ 2")
+                .createdByUser(teacher)
+                .build());
     }
 }

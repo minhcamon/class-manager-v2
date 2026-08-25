@@ -242,8 +242,8 @@ public class StudentWeeklyBehaviorService {
                 behaviorRepository.aggregateAcademicPointsByClass(classId, academicYear);
         int totalAcademicPoints = classEntity.getBasePoint();
         for (var p : academicTotals) {
-            if (p.getStudentId().equals(studentId)) {
-                totalAcademicPoints += p.getTotalPoints();
+            if (p.getStudentId() != null && p.getStudentId().equals(studentId)) {
+                totalAcademicPoints += p.getTotalPoints() != null ? p.getTotalPoints().intValue() : 0;
                 break;
             }
         }

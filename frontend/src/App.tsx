@@ -12,6 +12,7 @@ import TeacherDashboard from "./views/dashboard/TeacherDashboard";
 import StudentDashboard from "./views/dashboard/StudentDashboard";
 import TeacherClassesList from "./views/class/TeacherClassesList";
 import TeacherClassOverview from "./views/class/TeacherClassOverview";
+import TeacherMatrixPointBoardView from "./views/class/TeacherMatrixPointBoardView";
 import TeacherClassManagement from "./views/class/TeacherClassManagement";
 import DailyCanvasView from "./views/class/DailyCanvasView";
 import TeacherClassConfiguration from "./views/class/TeacherClassConfiguration";
@@ -79,6 +80,7 @@ function App() {
                         <Route path="/teacher/classes" element={<TeacherClassesList />} />
                         <Route path="/teacher/classes/create" element={<CreateClassView />} />
                         <Route path="/teacher/classes/:classId" element={<TeacherClassOverview />} />
+                        <Route path="/teacher/classes/:classId/matrix" element={<TeacherMatrixPointBoardView />} />
                         <Route path="/teacher/classes/:classId/management" element={<TeacherClassManagement />} />
                         <Route path="/teacher/classes/:classId/profile-template" element={<ProfileTemplateBuilder />} />
                         <Route path="/teacher/classes/:classId/configuration" element={<TeacherClassConfiguration />} />

@@ -12,6 +12,7 @@ import {
   BookOpen,
   Loader2,
   Award,
+  Layers,
 } from "lucide-react";
 import LogoutButton from "@/components/ui/LogoutButton";
 import classService from "@/services/classService";
@@ -98,6 +99,11 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
         label: "Tổng quan",
         path: `/teacher/classes/${classId}`,
         icon: Home,
+      },
+      {
+        label: "Bảng điểm",
+        path: `/teacher/classes/${classId}/matrix`,
+        icon: Layers,
       },
       {
         label: "Quản lý học sinh",

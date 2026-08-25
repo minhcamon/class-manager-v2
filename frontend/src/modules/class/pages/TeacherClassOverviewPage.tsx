@@ -15,8 +15,7 @@ import {
   Eye,
   EyeOff,
   Trophy, 
-  CalendarDays,
-  Layers
+  CalendarDays
 } from "lucide-react";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
@@ -25,7 +24,6 @@ import type { Class } from "@/types/class";
 import Button from "@/components/ui/Button";
 
 // Subcomponents
-import MatrixPointBoardTab from "../components/MatrixPointBoardTab";
 import TeacherLeaderboardTab from "../components/TeacherLeaderboardTab";
 import TeacherReportsTab from "../components/TeacherReportsTab";
 import TeacherActivitiesTab from "../components/TeacherActivitiesTab";
@@ -40,7 +38,7 @@ export default function TeacherClassOverviewPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Tab & refresh trigger state
-  const [activeTab, setActiveTab] = useState<"matrix" | "leaderboard" | "reports" | "activities">("matrix");
+  const [activeTab, setActiveTab] = useState<"leaderboard" | "reports" | "activities">("leaderboard");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const triggerLeaderboardRefresh = () => {
@@ -260,17 +258,6 @@ export default function TeacherClassOverviewPage() {
         {/* Tab navigation */}
         <div className="flex border-b border-border">
           <button
-            onClick={() => setActiveTab("matrix")}
-            className={`py-3 px-6 font-bold text-sm flex items-center gap-2 cursor-pointer border-b-2 -mb-px transition-all ${
-              activeTab === "matrix"
-                ? "border-primary text-primary"
-                : "border-transparent text-neutral-500 hover:text-neutral-900"
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            Ma trận điểm thi đua
-          </button>
-          <button
             onClick={() => setActiveTab("leaderboard")}
             className={`py-3 px-6 font-bold text-sm flex items-center gap-2 cursor-pointer border-b-2 -mb-px transition-all ${
               activeTab === "leaderboard"
@@ -306,10 +293,6 @@ export default function TeacherClassOverviewPage() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === "matrix" && classId && (
-          <MatrixPointBoardTab classId={classId} canEdit={true} refreshTrigger={refreshTrigger} />
-        )}
-
         {activeTab === "leaderboard" && classId && (
           <TeacherLeaderboardTab classId={classId} refreshTrigger={refreshTrigger} />
         )}

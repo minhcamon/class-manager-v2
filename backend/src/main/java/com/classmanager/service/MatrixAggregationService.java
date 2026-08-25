@@ -41,8 +41,11 @@ public class MatrixAggregationService {
         if (toWeek == null || toWeek < fromWeek) toWeek = fromWeek + 3; // Default 4 weeks span
         if (toWeek - fromWeek > 52) toWeek = fromWeek + 51;
 
-        // 1. Fetch all active enrollments for this class
-        List<Enrollment> enrollments = enrollmentRepository.findByClassEntityIdAndStatus(classId, EnrollmentStatus.ACTIVE);
+        // 1. Fetch all active enrollments for this class with user, profile, group details
+        List<Enrollment> enrollments = enrollmentRepository.findClassDashboardData(classId, EnrollmentStatus.ACTIVE);
+        if (enrollments == null || enrollments.isEmpty()) {
+            enrollments = enrollmentRepository.findByClassEntityIdAndStatus(classId, EnrollmentStatus.ACTIVE);
+        }
 
         // 2. Fetch aggregations in the week range
         List<StudentWeekAggregatedProjection> matrixProjections =
@@ -50,34 +53,54 @@ public class MatrixAggregationService {
 
         // Map key: "studentId_weekNumber" -> projection
         Map<String, StudentWeekAggregatedProjection> cellMap = new HashMap<>();
-        for (StudentWeekAggregatedProjection proj : matrixProjections) {
-            cellMap.put(proj.getStudentId() + "_" + proj.getWeekNumber(), proj);
+        if (matrixProjections != null) {
+            for (StudentWeekAggregatedProjection proj : matrixProjections) {
+                if (proj != null && proj.getStudentId() != null && proj.getWeekNumber() != null) {
+                    cellMap.put(proj.getStudentId() + "_" + proj.getWeekNumber(), proj);
+                }
+            }
         }
 
         // 3. Fetch academic cumulative totals
         List<StudentRankingProjection> academicTotals =
                 behaviorRepository.aggregateAcademicPointsByClass(classId, academicYear);
-        Map<Integer, Integer> academicTotalMap = academicTotals.stream()
-                .collect(Collectors.toMap(StudentRankingProjection::getStudentId, StudentRankingProjection::getTotalPoints));
+        Map<Integer, Integer> academicTotalMap = new HashMap<>();
+        if (academicTotals != null) {
+            for (StudentRankingProjection p : academicTotals) {
+                if (p != null && p.getStudentId() != null) {
+                    academicTotalMap.put(p.getStudentId(), p.getTotalPoints() != null ? p.getTotalPoints().intValue() : 0);
+                }
+            }
+        }
 
         // 4. Fetch all groups in the class
         List<Group> classGroups = groupRepository.findByClassEntityId(classId);
 
         // Map group ID -> Group
-        Map<Integer, Group> groupMap = classGroups.stream()
-                .collect(Collectors.toMap(Group::getId, g -> g));
+        Map<Integer, Group> groupMap = new HashMap<>();
+        if (classGroups != null) {
+            for (Group g : classGroups) {
+                if (g != null && g.getId() != null) {
+                    groupMap.put(g.getId(), g);
+                }
+            }
+        }
 
         // Group enrollments by group ID (null for ungrouped)
         Map<Integer, List<Enrollment>> enrollmentsByGroup = new LinkedHashMap<>();
-        for (Group g : classGroups) {
-            enrollmentsByGroup.put(g.getId(), new ArrayList<>());
+        if (classGroups != null) {
+            for (Group g : classGroups) {
+                enrollmentsByGroup.put(g.getId(), new ArrayList<>());
+            }
         }
         enrollmentsByGroup.put(-1, new ArrayList<>()); // For ungrouped students
 
-        for (Enrollment en : enrollments) {
-            if (en.getStudentProfile() == null) continue;
-            Integer gId = (en.getGroup() != null) ? en.getGroup().getId() : -1;
-            enrollmentsByGroup.computeIfAbsent(gId, k -> new ArrayList<>()).add(en);
+        if (enrollments != null) {
+            for (Enrollment en : enrollments) {
+                if (en.getStudentProfile() == null) continue;
+                Integer gId = (en.getGroup() != null) ? en.getGroup().getId() : -1;
+                enrollmentsByGroup.computeIfAbsent(gId, k -> new ArrayList<>()).add(en);
+            }
         }
 
         int basePoint = classEntity.getBasePoint();
@@ -112,10 +135,10 @@ public class MatrixAggregationService {
                         StudentWeekAggregatedProjection proj = cellMap.get(key);
                         weekCells.add(WeekCellDTO.builder()
                                 .weekNumber(w)
-                                .netScore(proj.getNetScore() != null ? proj.getNetScore() : 0)
-                                .posScore(proj.getTotalBonus() != null ? proj.getTotalBonus() : 0)
-                                .negScore(proj.getTotalPenalty() != null ? proj.getTotalPenalty() : 0)
-                                .logCount(proj.getLogCount() != null ? proj.getLogCount() : 0L)
+                                .netScore(proj.getNetScore() != null ? proj.getNetScore().intValue() : 0)
+                                .posScore(proj.getTotalBonus() != null ? proj.getTotalBonus().intValue() : 0)
+                                .negScore(proj.getTotalPenalty() != null ? proj.getTotalPenalty().intValue() : 0)
+                                .logCount(proj.getLogCount() != null ? proj.getLogCount().longValue() : 0L)
                                 .build());
                     } else {
                         // Empty week default (BR-WEEK-02 & Agent Directives)
