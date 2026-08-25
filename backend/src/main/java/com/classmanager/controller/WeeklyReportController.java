@@ -10,6 +10,7 @@ import com.classmanager.enums.EnrollmentStatus;
 import com.classmanager.exception.CustomException;
 import com.classmanager.repository.ClassRepository;
 import com.classmanager.repository.EnrollmentRepository;
+import com.classmanager.service.DynamicLeaderboardService;
 import com.classmanager.service.WeeklyReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,6 +31,7 @@ import java.util.List;
 @Tag(name = "Weekly Reports & Leaderboards", description = "APIs for weekly cycle close operations and leaderboard standing lists")
 public class WeeklyReportController {
 
+    private final DynamicLeaderboardService dynamicLeaderboardService;
     private final WeeklyReportService weeklyReportService;
     private final ClassRepository classRepository;
     private final EnrollmentRepository enrollmentRepository;
@@ -51,20 +53,25 @@ public class WeeklyReportController {
     }
 
     @GetMapping("/leaderboard/academic")
-    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT', 'ADMIN')")
     @Operation(summary = "Get academic leaderboard (cumulative points)")
-    public ResponseEntity<APIResponse<AcademicLeaderboardResponse>> getAcademicLeaderboard(@RequestParam Integer classId) {
+    public ResponseEntity<APIResponse<AcademicLeaderboardResponse>> getAcademicLeaderboard(
+            @RequestParam Integer classId,
+            @RequestParam(required = false) Integer academicYear) {
         validateMemberAccess(classId);
-        AcademicLeaderboardResponse leaderboard = weeklyReportService.getAcademicLeaderboard(classId);
+        AcademicLeaderboardResponse leaderboard = dynamicLeaderboardService.getAcademicLeaderboard(classId, academicYear);
         return ResponseEntity.ok(APIResponse.success("Academic leaderboard retrieved successfully", leaderboard));
     }
 
     @GetMapping("/leaderboard/weekly")
-    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT', 'ADMIN')")
     @Operation(summary = "Get weekly leaderboard (current week net points)")
-    public ResponseEntity<APIResponse<WeeklyLeaderboardResponse>> getWeeklyLeaderboard(@RequestParam Integer classId) {
+    public ResponseEntity<APIResponse<WeeklyLeaderboardResponse>> getWeeklyLeaderboard(
+            @RequestParam Integer classId,
+            @RequestParam(required = false) Integer academicYear,
+            @RequestParam(required = false) Integer weekNumber) {
         validateMemberAccess(classId);
-        WeeklyLeaderboardResponse leaderboard = weeklyReportService.getWeeklyLeaderboard(classId);
+        WeeklyLeaderboardResponse leaderboard = dynamicLeaderboardService.getWeeklyLeaderboard(classId, academicYear, weekNumber);
         return ResponseEntity.ok(APIResponse.success("Weekly leaderboard retrieved successfully", leaderboard));
     }
 

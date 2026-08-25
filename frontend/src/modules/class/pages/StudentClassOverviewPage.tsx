@@ -6,6 +6,7 @@ import {
   Trophy,
   TableProperties,
   Loader2,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
@@ -17,10 +18,11 @@ import Button from "@/components/ui/Button";
 import weeklyReportService from "@/services/weeklyReportService";
 
 // Subcomponents
+import MatrixPointBoardTab from "../components/MatrixPointBoardTab";
 import StudentScoreTab from "../components/StudentScoreTab";
 import StudentLeaderboardTab from "../components/StudentLeaderboardTab";
 
-type Tab = "scores" | "leaderboard";
+type Tab = "scores" | "matrix" | "leaderboard";
 
 export default function StudentClassOverviewPage() {
   const { classId } = useParams<{ classId: string }>();
@@ -37,7 +39,7 @@ export default function StudentClassOverviewPage() {
 
   // Derive active tab from URL search param
   const rawTab = searchParams.get("tab");
-  const activeTab: Tab = rawTab === "leaderboard" ? "leaderboard" : "scores";
+  const activeTab: Tab = rawTab === "leaderboard" ? "leaderboard" : rawTab === "matrix" ? "matrix" : "scores";
 
   const setTab = (tab: Tab) => {
     if (tab === "scores") {
@@ -171,7 +173,8 @@ export default function StudentClassOverviewPage() {
         <div className="max-w-5xl mx-auto flex gap-1">
           {(
             [
-              { key: "scores", label: "Bảng điểm", icon: TableProperties },
+              { key: "matrix", label: "Ma trận điểm", icon: Layers },
+              { key: "scores", label: "Điểm cá nhân", icon: TableProperties },
               { key: "leaderboard", label: "Xếp hạng", icon: Trophy },
             ] as { key: Tab; label: string; icon: React.ElementType }[]
           ).map(({ key, label, icon: Icon }) => (
@@ -216,7 +219,9 @@ export default function StudentClassOverviewPage() {
             </Button>
           </div>
         )}
-        {activeTab === "scores" ? (
+        {activeTab === "matrix" && classId ? (
+          <MatrixPointBoardTab classId={classId} canEdit={isGroupLeader} />
+        ) : activeTab === "scores" ? (
           <StudentScoreTab classData={classData} studentProfileId={myStudentProfileId} />
         ) : classId ? (
           <StudentLeaderboardTab classId={parseInt(classId)} myStudentProfileId={myStudentProfileId} />
