@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Master orchestration skill for ClassManager. Analyzes every incoming task, activates the correct skill combination, loads only the necessary context, gates ambiguity before coding, and self-verifies output before responding.
+description: Master orchestration skill for ClassManager. Analyzes every incoming task, activates the correct skill combination, loads only the necessary context, gates ambiguity before coding, self-verifies output before responding, and automatically tracks deferred items, blocked scopes, and bugs into docs/backlog.md.
 ---
 
 # Orchestrate — ClassManager Agent Director
@@ -226,10 +226,11 @@ If any item fails → fix before responding.
 □ Component modularity: No monolithic component/page files (files exceeding 300 lines should be split into modular subcomponents under components/)
 ```
 
-### Universal checks
+### Universal & Backlog checks
 ```
 □ No // TODO, // ..., or placeholder comments
 □ No incomplete logic left for "later"
+□ Backlog verification: Any deferred user requests, blocked scope, or known edge-case bugs must be recorded in docs/backlog.md (Phase 7)
 □ Code is consistent with existing patterns in the codebase
 □ Output is complete and immediately usable
 ```
@@ -290,3 +291,31 @@ Never allow new point_logs for an ENDED class.
 3. Fix only the broken behavior — do not refactor unrelated code
 4. Add a note explaining why the fix is correct per the BR
 ```
+
+---
+
+## Phase 7 — Automated Backlog Protocol (`docs/backlog.md`)
+
+The agent is **mandated to automatically record and track items in `docs/backlog.md`** under the following 3 triggers without waiting for an explicit command:
+
+### 1. Trigger Conditions
+1. **Deferred User Requests (Yêu cầu làm sau / Phase sau):**
+   - When user explicitly states: *"làm sau"*, *"để sau"*, *"chỉnh sửa sau"*, *"tạm thời chưa làm"*, *"phase sau"*, etc.
+   - *Example:* "Giao diện học sinh sẽ chỉnh sửa sau" $\rightarrow$ Record Student Matrix Point Board into backlog.
+2. **Blocked / Partial Implementation Scope (Nội dung chưa thể hoàn tất trong phiên làm việc):**
+   - When a feature component or sub-flow cannot be completed immediately due to missing dependencies (e.g. AI API keys, cron schedulers, external webhooks, unbuilt prerequisite APIs), or scope limits of the current turn.
+3. **Known Edge Cases & Unresolved Bugs (Lỗi còn tồn đọng / Chưa fix ngay):**
+   - When a bug or edge-case is discovered during testing, review, or compilation/linting that cannot be safely resolved within the current scope.
+
+### 2. Execution Protocol
+Whenever any trigger condition is met:
+1. **Read & Check** `docs/backlog.md` to identify the next sequential ID (`BUG-xxx` for bugs, `ENH-xxx` for enhancements / features).
+2. **Append / Update Entry** in the **📌 Bảng Tổng Quan Trạng Thái** and under the corresponding **Feature Section** (`### Feature X: ...`).
+3. **Standard Entry Format:**
+   ```markdown
+   - [ ] **[Mã ID] [Tên chức năng / Yêu cầu]**: Tóm tắt vấn đề hoặc yêu cầu cần thực hiện
+     - *Hiện tượng / Yêu cầu:* Chi tiết yêu cầu của người dùng hoặc lỗi phát sinh
+     - *Kỳ vọng / Giải pháp:* Hướng triển khai hoặc kỳ vọng kết quả
+     - *Ghi chú kỹ thuật:* File component, API endpoint, hoặc ghi chú nghiệp vụ liên quan
+   ```
+4. **Notify User:** In the final turn response, explicitly inform the user that the item has been safely recorded and indexed into `docs/backlog.md`.
