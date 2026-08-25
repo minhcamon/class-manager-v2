@@ -103,7 +103,7 @@ export default function MatrixTable({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      className={`overflow-auto max-h-[calc(100vh-210px)] relative w-full border border-slate-200 rounded-2xl bg-white shadow-2xs select-none ${
+      className={`overflow-auto max-h-[calc(100vh-210px)] relative w-full border border-slate-200 rounded-2xl bg-white shadow-2xs select-none scrollbar-auto-hide ${
         isDragging ? "cursor-grabbing" : "cursor-grab"
       }`}
     >

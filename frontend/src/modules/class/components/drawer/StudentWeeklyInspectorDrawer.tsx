@@ -119,8 +119,8 @@ export default function StudentWeeklyInspectorDrawer({
       />
 
       {/* Drawer Panel */}
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10 pointer-events-auto">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col border-l border-border animate-in slide-in-from-right duration-300">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 pointer-events-auto">
+        <div className="w-screen max-w-80 bg-white shadow-2xl flex flex-col border-l border-border animate-in slide-in-from-right duration-300">
           
           {/* Header */}
           <DrawerHeader
@@ -132,7 +132,7 @@ export default function StudentWeeklyInspectorDrawer({
           />
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-5 space-y-5 scrollbar-auto-hide">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 text-neutral-400">
                 <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />

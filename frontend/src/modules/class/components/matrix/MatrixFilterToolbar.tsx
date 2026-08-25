@@ -100,10 +100,12 @@ export default function MatrixFilterToolbar({
 
         <button
           onClick={onRefresh}
-          className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-          title="Làm mới ma trận"
+          disabled={loading}
+          className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 disabled:opacity-60 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:cursor-not-allowed shadow-2xs"
+          title="Làm mới ma trận điểm"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-primary" : ""}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-primary" : "text-slate-500"}`} />
+          <span>{loading ? "Đang tải..." : "Làm mới"}</span>
         </button>
       </div>
     </div>

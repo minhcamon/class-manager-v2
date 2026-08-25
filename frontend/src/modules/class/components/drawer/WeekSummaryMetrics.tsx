@@ -20,7 +20,7 @@ export default function WeekSummaryMetrics({
         {/* Net score */}
         <div className="bg-neutral-50 border border-border rounded-2xl p-3.5 text-center shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 block mb-1">
-            Điểm tuần
+            Tuần
           </span>
           <span
             className={`text-xl font-black ${
@@ -38,7 +38,7 @@ export default function WeekSummaryMetrics({
         {/* Bonus */}
         <div className="bg-emerald-50/60 border border-emerald-100 rounded-2xl p-3.5 text-center shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 flex items-center justify-center gap-1 mb-1">
-            <TrendingUp className="w-3 h-3" /> Điểm cộng
+            <TrendingUp className="w-3 h-3" /> Cộng
           </span>
           <span className="text-xl font-black text-emerald-700">
             +{totalBonus}
@@ -48,7 +48,7 @@ export default function WeekSummaryMetrics({
         {/* Penalty */}
         <div className="bg-rose-50/60 border border-rose-100 rounded-2xl p-3.5 text-center shadow-2xs">
           <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 flex items-center justify-center gap-1 mb-1">
-            <TrendingDown className="w-3 h-3" /> Điểm trừ
+            <TrendingDown className="w-3 h-3" /> Trừ
           </span>
           <span className="text-xl font-black text-rose-700">
             {totalPenalty}
@@ -57,10 +57,10 @@ export default function WeekSummaryMetrics({
       </div>
 
       {/* Cumulative Academic Points Bar */}
-      <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-primary-dark">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl px-4 py-2.5 flex items-center justify-around text-xs text-primary-dark">
         <span className="font-semibold flex items-center gap-1.5 text-neutral-700">
           <Award className="w-4 h-4 text-primary" />
-          Tổng điểm tích lũy năm học:
+          Tổng điểm tích lũy:
         </span>
         <span className="font-extrabold text-sm text-neutral-900">
           {totalAcademicPoints}đ

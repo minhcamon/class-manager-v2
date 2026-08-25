@@ -17,7 +17,6 @@ import {
 import LogoutButton from "@/components/ui/LogoutButton";
 import classService from "@/services/classService";
 import type { Class } from "@/types/class";
-import { AiChatbotWidget } from "@/modules/ai";
 
 
 interface TeacherLayoutProps {
@@ -308,12 +307,12 @@ export default function TeacherLayout({ children }: TeacherLayoutProps) {
         {children}
 
         {/* Global Floating AI Chatbot Widget for all Teacher Layout screens */}
-        {classId && (
+        {/* {classId && (
           <AiChatbotWidget
             classId={Number(classId)}
             weekStartDate={new Date().toISOString().split("T")[0]}
           />
-        )}
+        )} */}
       </main>
     </div>
   );
