@@ -39,6 +39,23 @@ public class MatrixBoardController {
         return ResponseEntity.ok(APIResponse.success("Matrix board retrieved successfully", response));
     }
 
+    @GetMapping("/weekly-focus")
+    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT', 'ADMIN')")
+    @Operation(summary = "Get single-week detailed focus data with behavioral logs")
+    public ResponseEntity<APIResponse<com.classmanager.dto.matrix.WeeklyFocusResponse>> getWeeklyFocusBoard(
+            @PathVariable Integer classId,
+            @RequestParam(required = false, defaultValue = "2026") Integer academicYear,
+            @RequestParam(required = false, defaultValue = "1") Integer weekNumber) {
+
+        Long currentUserId = getCurrentUserId();
+        Role role = getRole();
+
+        com.classmanager.dto.matrix.WeeklyFocusResponse response = matrixAggregationService.getWeeklyFocusBoard(
+                currentUserId, role, classId, academicYear, weekNumber);
+
+        return ResponseEntity.ok(APIResponse.success("Weekly focus board retrieved successfully", response));
+    }
+
     private Long getCurrentUserId() {
         return (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }

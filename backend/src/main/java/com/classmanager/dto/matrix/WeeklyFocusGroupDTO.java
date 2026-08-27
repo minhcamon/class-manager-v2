@@ -1,19 +1,21 @@
 package com.classmanager.dto.matrix;
 
 import lombok.*;
-
 import java.util.List;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class GroupMatrixDTO {
+public class WeeklyFocusGroupDTO {
     private Integer groupId;
     private String groupName;
     private Double groupAvgScore;
-    private Integer groupTotalScore;
+    private Integer totalGroupPlus;
+    private Integer totalGroupMinus;
+    private Integer totalGroupNet;
+    private Integer rank;
     private Integer leaderStudentId;
     private String leaderName;
-    private List<StudentMatrixDTO> students;
+    private List<WeeklyFocusStudentDTO> students;
 }

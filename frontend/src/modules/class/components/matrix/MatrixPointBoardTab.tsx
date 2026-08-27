@@ -2,11 +2,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import matrixService from "@/services/matrixService";
-import type { MatrixBoardResponse } from "@/types/matrix";
+import type { MatrixBoardResponse, WeeklyFocusResponse } from "@/types/matrix";
 
 // Subcomponents
-import MatrixFilterToolbar, { type RangePreset } from "./MatrixFilterToolbar";
+import MatrixFilterToolbar, { type RangePreset, type MatrixViewMode } from "./MatrixFilterToolbar";
 import MatrixTable from "./MatrixTable";
+import WeeklyFocusTable from "./weekly/WeeklyFocusTable";
 import StudentWeeklyInspectorDrawer from "../drawer/StudentWeeklyInspectorDrawer";
 
 interface MatrixPointBoardTabProps {
@@ -20,8 +21,18 @@ export default function MatrixPointBoardTab({
   canEdit = true,
   refreshTrigger,
 }: MatrixPointBoardTabProps) {
+  // View Mode: "matrix" | "weeklyFocus"
+  const [viewMode, setViewMode] = useState<MatrixViewMode>("matrix");
+
+  // Matrix Mode Data & Loading
   const [data, setData] = useState<MatrixBoardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Weekly Focus Mode Data & Loading
+  const [weeklyData, setWeeklyData] = useState<WeeklyFocusResponse | null>(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [selectedFocusWeek, setSelectedFocusWeek] = useState<number>(1);
+  const [isGlobalExpanded, setIsGlobalExpanded] = useState<boolean>(false);
 
   // Filters
   const [academicYear, setAcademicYear] = useState<number>(2026);
@@ -45,6 +56,7 @@ export default function MatrixPointBoardTab({
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedWeekNumber, setSelectedWeekNumber] = useState<number | null>(null);
 
+  // Fetch Matrix Board
   const fetchMatrix = useCallback(async () => {
     if (!classId) return;
     setLoading(true);
@@ -85,9 +97,52 @@ export default function MatrixPointBoardTab({
     }
   }, [classId, academicYear, fromWeek, toWeek, storageKey]);
 
+  // Fetch Weekly Focus Board
+  const fetchWeeklyFocus = useCallback(async () => {
+    if (!classId) return;
+    setWeeklyLoading(true);
+    try {
+      const classIdInt = parseInt(classId);
+      const res = await matrixService.getWeeklyFocusBoard(classIdInt, {
+        academicYear,
+        weekNumber: selectedFocusWeek,
+      });
+      setWeeklyData(res);
+
+      setExpandedGroups((prev) => {
+        const next = { ...prev };
+        let modified = false;
+        res.groups.forEach((g) => {
+          const key = String(g.groupId ?? "ungrouped");
+          if (next[key] === undefined) {
+            next[key] = true;
+            modified = true;
+          }
+        });
+        if (modified) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(next));
+          } catch {
+            // Ignore storage errors
+          }
+        }
+        return next;
+      });
+    } catch (e) {
+      console.error("Failed to fetch weekly focus board", e);
+      toast.error("Không thể tải chi tiết bảng điểm tuần.");
+    } finally {
+      setWeeklyLoading(false);
+    }
+  }, [classId, academicYear, selectedFocusWeek, storageKey]);
+
   useEffect(() => {
-    fetchMatrix();
-  }, [fetchMatrix, refreshTrigger]);
+    if (viewMode === "matrix") {
+      fetchMatrix();
+    } else {
+      fetchWeeklyFocus();
+    }
+  }, [viewMode, fetchMatrix, fetchWeeklyFocus, refreshTrigger]);
 
   const handlePresetChange = (newPreset: RangePreset) => {
     setPreset(newPreset);
@@ -120,12 +175,13 @@ export default function MatrixPointBoardTab({
   };
 
   const toggleExpandAll = () => {
-    if (!data) return;
-    const allAreExpanded = data.groups.every(
+    const currentGroups = viewMode === "matrix" ? data?.groups : weeklyData?.groups;
+    if (!currentGroups) return;
+    const allAreExpanded = currentGroups.every(
       (g) => expandedGroups[String(g.groupId ?? "ungrouped")] !== false
     );
     const next: Record<string, boolean> = {};
-    data.groups.forEach((g) => {
+    currentGroups.forEach((g) => {
       next[String(g.groupId ?? "ungrouped")] = !allAreExpanded;
     });
     setExpandedGroups(next);
@@ -142,16 +198,23 @@ export default function MatrixPointBoardTab({
     setDrawerOpen(true);
   };
 
+  const handleOpenWeeklyDrawer = (studentId: number) => {
+    setSelectedStudentId(studentId);
+    setSelectedWeekNumber(selectedFocusWeek);
+    setDrawerOpen(true);
+  };
+
   const handleDrawerClose = () => {
     setDrawerOpen(false);
     setSelectedStudentId(null);
     setSelectedWeekNumber(null);
   };
 
+  const currentGroups = viewMode === "matrix" ? data?.groups : weeklyData?.groups;
   const allExpanded = Boolean(
-    data &&
-      data.groups.length > 0 &&
-      data.groups.every((g) => expandedGroups[String(g.groupId ?? "ungrouped")] !== false)
+    currentGroups &&
+      currentGroups.length > 0 &&
+      currentGroups.every((g) => expandedGroups[String(g.groupId ?? "ungrouped")] !== false)
   );
 
   return (
@@ -159,27 +222,45 @@ export default function MatrixPointBoardTab({
       {/* ── Fixed Static Filter Toolbar ──────────────────────────────── */}
       <div className="shrink-0">
         <MatrixFilterToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
           academicYear={academicYear}
           setAcademicYear={setAcademicYear}
           preset={preset}
           onPresetChange={handlePresetChange}
+          selectedFocusWeek={selectedFocusWeek}
+          onSelectedFocusWeekChange={setSelectedFocusWeek}
           onToggleExpandAll={toggleExpandAll}
           allExpanded={allExpanded}
-          onRefresh={fetchMatrix}
-          loading={loading}
+          isGlobalExpanded={isGlobalExpanded}
+          onToggleGlobalExpanded={() => setIsGlobalExpanded((prev) => !prev)}
+          onRefresh={viewMode === "matrix" ? fetchMatrix : fetchWeeklyFocus}
+          loading={viewMode === "matrix" ? loading : weeklyLoading}
         />
       </div>
 
-      {/* ── Full-height Matrix Table with Frozen Header ──────────────── */}
-      <MatrixTable
-        data={data}
-        loading={loading}
-        expandedGroups={expandedGroups}
-        onToggleGroup={toggleGroup}
-        selectedStudentId={selectedStudentId}
-        selectedWeekNumber={selectedWeekNumber}
-        onCellClick={handleCellClick}
-      />
+      {/* ── Viewport Mode: Matrix Table vs Weekly Focus Table ────────── */}
+      {viewMode === "matrix" ? (
+        <MatrixTable
+          data={data}
+          loading={loading}
+          expandedGroups={expandedGroups}
+          onToggleGroup={toggleGroup}
+          selectedStudentId={selectedStudentId}
+          selectedWeekNumber={selectedWeekNumber}
+          onCellClick={handleCellClick}
+        />
+      ) : (
+        <WeeklyFocusTable
+          data={weeklyData}
+          loading={weeklyLoading}
+          expandedGroups={expandedGroups}
+          onToggleGroup={toggleGroup}
+          isGlobalExpanded={isGlobalExpanded}
+          onOpenDrawer={handleOpenWeeklyDrawer}
+          onRefresh={fetchWeeklyFocus}
+        />
+      )}
 
       {/* ── Inspector Drawer ─────────────────────────────────────────── */}
       <StudentWeeklyInspectorDrawer
@@ -188,10 +269,11 @@ export default function MatrixPointBoardTab({
         studentId={selectedStudentId}
         classId={parseInt(classId)}
         academicYear={academicYear}
-        weekNumber={selectedWeekNumber ?? 1}
+        weekNumber={selectedWeekNumber ?? selectedFocusWeek ?? 1}
         canEdit={canEdit}
-        onRefreshRequired={fetchMatrix}
+        onRefreshRequired={viewMode === "matrix" ? fetchMatrix : fetchWeeklyFocus}
       />
     </div>
   );
 }
+

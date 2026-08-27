@@ -44,7 +44,7 @@ export default function CreateClassPage() {
     resolver: zodResolver(classSchema),
     defaultValues: {
       grade: 10,
-      basePoint: 100,
+      basePoint: 0,
     },
   });
 

@@ -27,6 +27,15 @@ public interface PointLogRepository extends JpaRepository<PointLog, Long> {
            "LEFT JOIN FETCH s.enrollment e " +
            "LEFT JOIN FETCH e.user u " +
            "LEFT JOIN FETCH p.createdByUser c " +
+           "WHERE p.classEntity.id = :classId AND p.weekStartDate = :weekStartDate " +
+           "ORDER BY p.createdAt ASC")
+    List<PointLog> findByClassEntityIdAndWeekStartDateOrderByCreatedAtAsc(@Param("classId") Integer classId, @Param("weekStartDate") LocalDate weekStartDate);
+
+    @Query("SELECT p FROM PointLog p " +
+           "LEFT JOIN FETCH p.student s " +
+           "LEFT JOIN FETCH s.enrollment e " +
+           "LEFT JOIN FETCH e.user u " +
+           "LEFT JOIN FETCH p.createdByUser c " +
            "WHERE p.classEntity.id = :classId " +
            "ORDER BY p.createdAt DESC")
     List<PointLog> findByClassEntityIdOrderByCreatedAtDesc(@Param("classId") Integer classId);

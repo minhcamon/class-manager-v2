@@ -64,7 +64,7 @@ export default function MatrixGroupRow({
       {/* Group Average Score */}
       <td className="px-3 py-2.5 text-center w-28 min-w-28 border-r border-slate-200 bg-slate-100/80">
         <span className="text-xs font-black text-primary bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20 inline-block shadow-2xs">
-          TB: {group.groupAvgScore}đ
+          {group.groupTotalScore}
         </span>
       </td>
 

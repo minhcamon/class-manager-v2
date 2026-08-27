@@ -39,7 +39,7 @@ public class ClassEntity {
 
     @Column(name = "base_point", nullable = false)
     @Builder.Default
-    private Integer basePoint = 100;
+    private Integer basePoint = 0;
 
     @Column(name = "class_code", nullable = false, length = 20, unique = true)
     private String classCode;

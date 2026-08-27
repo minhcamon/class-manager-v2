@@ -26,6 +26,6 @@ public class ClassCreateRequest {
 
     @NotNull(message = "Base point is required")
     @Builder.Default
-    @Schema(description = "Starting base point for students in this class", example = "100")
-    private Integer basePoint = 100;
+    @Schema(description = "Starting base point for students in this class", example = "0")
+    private Integer basePoint = 0;
 }

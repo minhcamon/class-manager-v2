@@ -41,7 +41,7 @@ export default function MatrixTableHeader({
 
         {/* Frozen Academic Total Column (Sticky Top) */}
         <th className="px-3 py-3.5 text-center sticky top-0 w-28 min-w-28 bg-slate-100 border-r border-slate-200">
-          Tích lũy năm
+          Tích lũy
         </th>
 
         {/* Frozen Dynamic Week Columns (Sticky Top) */}
@@ -51,9 +51,6 @@ export default function MatrixTableHeader({
             className="px-3 py-2.5 text-center sticky top-0 min-w-28 border-r border-slate-200 bg-slate-100"
           >
             <span className="block text-xs text-slate-900 font-extrabold">Tuần {w}</span>
-            <span className="block text-[10px] font-semibold text-slate-400 tracking-tight mt-0.5">
-              net (+ / -)
-            </span>
           </th>
         ))}
       </tr>

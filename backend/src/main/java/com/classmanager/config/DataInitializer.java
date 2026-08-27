@@ -91,7 +91,7 @@ public class DataInitializer implements CommandLineRunner {
                 .teacher(teacherUser)
                 .school(school)
                 .status(ClassStatus.ACTIVE)
-                .basePoint(100)
+                .basePoint(0)
                 .classCode("10A1-2026")
                 .classPassword("123456")
                 .classPasswordHash(passwordEncoder.encode("123456"))
