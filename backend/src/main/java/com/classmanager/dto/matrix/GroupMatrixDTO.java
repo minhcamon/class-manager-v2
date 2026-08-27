@@ -12,5 +12,7 @@ public class GroupMatrixDTO {
     private Integer groupId;
     private String groupName;
     private Double groupAvgScore;
+    private Integer leaderStudentId;
+    private String leaderName;
     private List<StudentMatrixDTO> students;
 }

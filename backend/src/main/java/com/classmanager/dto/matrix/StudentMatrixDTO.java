@@ -13,5 +13,7 @@ public class StudentMatrixDTO {
     private String studentName;
     private String groupName;
     private Integer totalAcademicPoints;
+    private Boolean isLeader;
+    private List<String> roles;
     private List<WeekCellDTO> weekCells;
 }

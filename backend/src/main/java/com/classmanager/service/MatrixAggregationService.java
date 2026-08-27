@@ -113,8 +113,20 @@ public class MatrixAggregationService {
                 continue; // Skip empty ungrouped section
             }
 
-            String groupName = (groupId != -1 && groupMap.containsKey(groupId))
-                    ? groupMap.get(groupId).getGroupName() : "Chưa phân tổ";
+            Group currentGroup = (groupId != -1 && groupMap.containsKey(groupId)) ? groupMap.get(groupId) : null;
+            String groupName = currentGroup != null ? currentGroup.getGroupName() : "Chưa phân tổ";
+            
+            Enrollment leaderEnrollment = currentGroup != null ? currentGroup.getLeader() : null;
+            Integer leaderStudentId = null;
+            String leaderName = null;
+            if (leaderEnrollment != null) {
+                if (leaderEnrollment.getStudentProfile() != null) {
+                    leaderStudentId = leaderEnrollment.getStudentProfile().getId();
+                }
+                if (leaderEnrollment.getUser() != null) {
+                    leaderName = leaderEnrollment.getUser().getFullName();
+                }
+            }
 
             List<StudentMatrixDTO> studentDTOs = new ArrayList<>();
             double totalGroupScore = 0.0;
@@ -123,6 +135,7 @@ public class MatrixAggregationService {
                 StudentProfile sp = en.getStudentProfile();
                 Integer sId = sp.getId();
                 String studentName = (en.getUser() != null) ? en.getUser().getFullName() : "Học sinh #" + sId;
+                boolean isLeader = leaderEnrollment != null && leaderEnrollment.getId().equals(en.getId());
 
                 int studentAcademicDelta = academicTotalMap.getOrDefault(sId, 0);
                 int totalAcademicPoints = basePoint + studentAcademicDelta;
@@ -157,6 +170,7 @@ public class MatrixAggregationService {
                         .studentName(studentName)
                         .groupName(groupName)
                         .totalAcademicPoints(totalAcademicPoints)
+                        .isLeader(isLeader)
                         .weekCells(weekCells)
                         .build());
             }
@@ -168,6 +182,8 @@ public class MatrixAggregationService {
                     .groupId(groupId == -1 ? null : groupId)
                     .groupName(groupName)
                     .groupAvgScore(groupAvgScore)
+                    .leaderStudentId(leaderStudentId)
+                    .leaderName(leaderName)
                     .students(studentDTOs)
                     .build());
         }

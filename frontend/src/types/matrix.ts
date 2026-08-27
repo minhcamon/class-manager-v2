@@ -11,6 +11,8 @@ export interface StudentMatrix {
   studentName: string;
   groupName: string;
   totalAcademicPoints: number;
+  isLeader?: boolean;
+  roles?: string[];
   weekCells: WeekCell[];
 }
 
@@ -18,6 +20,8 @@ export interface GroupMatrix {
   groupId: number | null;
   groupName: string;
   groupAvgScore: number;
+  leaderStudentId?: number | null;
+  leaderName?: string | null;
   students: StudentMatrix[];
 }
 

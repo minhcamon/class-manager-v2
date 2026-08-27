@@ -1,10 +1,12 @@
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useRef, useState, useMemo } from "react";
 import { Layers } from "lucide-react";
 import type { MatrixBoardResponse } from "@/types/matrix";
 import MatrixTableHeader from "./MatrixTableHeader";
 import MatrixGroupRow from "./MatrixGroupRow";
 import MatrixStudentRow from "./MatrixStudentRow";
 import MatrixTableSkeleton from "./MatrixTableSkeleton";
+import { useColumnResize } from "../../hooks/useColumnResize";
+import { getGroupDuplicateFirstNames } from "../../utils/nameFormatters";
 
 interface MatrixTableProps {
   data: MatrixBoardResponse | null;
@@ -27,6 +29,13 @@ export default function MatrixTable({
 }: MatrixTableProps) {
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
+  // Column Resizer hook
+  const { colWidth, isResizing, startResizing } = useColumnResize({
+    defaultWidth: 240,
+    minWidth: 140,
+    maxWidth: 360,
+  });
+
   // Drag to scroll state
   const isMouseDownRef = useRef(false);
   const startXRef = useRef(0);
@@ -36,8 +45,8 @@ export default function MatrixTable({
 
   // Drag-to-scroll handlers
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Only left click
-    if (e.button !== 0) return;
+    // Only left click and not resizing
+    if (e.button !== 0 || isResizing) return;
     isMouseDownRef.current = true;
     hasDraggedRef.current = false;
     if (tableContainerRef.current) {
@@ -47,7 +56,7 @@ export default function MatrixTable({
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isMouseDownRef.current || !tableContainerRef.current) return;
+    if (!isMouseDownRef.current || !tableContainerRef.current || isResizing) return;
     const x = e.pageX - tableContainerRef.current.offsetLeft;
     const walk = x - startXRef.current;
     if (Math.abs(walk) > 5) {
@@ -68,15 +77,26 @@ export default function MatrixTable({
   };
 
   const handleCellClickSafe = (studentId: number, weekNumber: number) => {
-    // Suppress click if user was drag-scrolling
-    if (hasDraggedRef.current) return;
+    // Suppress click if user was drag-scrolling or resizing
+    if (hasDraggedRef.current || isResizing) return;
     onCellClick(studentId, weekNumber);
   };
 
   const handleToggleGroupSafe = (groupId: number | null) => {
-    if (hasDraggedRef.current) return;
+    if (hasDraggedRef.current || isResizing) return;
     onToggleGroup(groupId);
   };
+
+  // Pre-calculate group duplicate first names for every group in group context
+  const groupDuplicateMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    if (!data?.groups) return map;
+    for (const group of data.groups) {
+      const key = String(group.groupId ?? "ungrouped");
+      map.set(key, getGroupDuplicateFirstNames(group.students));
+    }
+    return map;
+  }, [data?.groups]);
 
   if (loading) {
     return <MatrixTableSkeleton rowCount={8} colCount={data ? data.toWeek - data.fromWeek + 1 : 4} />;
@@ -104,18 +124,28 @@ export default function MatrixTable({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       className={`overflow-auto max-h-[calc(100vh-210px)] relative w-full border border-slate-200 rounded-2xl bg-white shadow-2xs select-none scrollbar-auto-hide ${
-        isDragging ? "cursor-grabbing" : "cursor-grab"
+        isResizing
+          ? "cursor-col-resize select-none"
+          : isDragging
+          ? "cursor-grabbing"
+          : "cursor-grab"
       }`}
     >
       <table className="w-full text-left border-collapse min-w-full">
-        {/* Sticky Frozen Header */}
-        <MatrixTableHeader weekNumbers={weekNumbers} />
+        {/* Sticky Frozen Header with Resizer */}
+        <MatrixTableHeader
+          weekNumbers={weekNumbers}
+          nameColWidth={colWidth}
+          isResizing={isResizing}
+          onResizeStart={startResizing}
+        />
 
         {/* Tree-Grid Body */}
         <tbody className="divide-y divide-slate-200/80 text-sm">
           {data.groups.map((group) => {
             const groupKey = String(group.groupId ?? "ungrouped");
             const isExpanded = expandedGroups[groupKey] !== false;
+            const duplicateSet = groupDuplicateMap.get(groupKey) || new Set<string>();
 
             return (
               <Fragment key={groupKey}>
@@ -125,19 +155,28 @@ export default function MatrixTable({
                   isExpanded={isExpanded}
                   onToggle={() => handleToggleGroupSafe(group.groupId)}
                   weekCount={weekNumbers.length}
+                  nameColWidth={colWidth}
                 />
 
                 {/* Student Nodes */}
                 {isExpanded &&
-                  group.students.map((student) => (
-                    <MatrixStudentRow
-                      key={student.studentId}
-                      student={student}
-                      selectedStudentId={selectedStudentId}
-                      selectedWeekNumber={selectedWeekNumber}
-                      onCellClick={handleCellClickSafe}
-                    />
-                  ))}
+                  group.students.map((student) => {
+                    const parts = student.studentName?.trim().split(/\s+/) || [];
+                    const firstName = parts.length > 0 ? parts[parts.length - 1].toLowerCase() : "";
+                    const isDuplicateInGroup = duplicateSet.has(firstName);
+
+                    return (
+                      <MatrixStudentRow
+                        key={student.studentId}
+                        student={student}
+                        selectedStudentId={selectedStudentId}
+                        selectedWeekNumber={selectedWeekNumber}
+                        nameColWidth={colWidth}
+                        isDuplicateInGroup={isDuplicateInGroup}
+                        onCellClick={handleCellClickSafe}
+                      />
+                    );
+                  })}
               </Fragment>
             );
           })}
@@ -146,3 +185,4 @@ export default function MatrixTable({
     </div>
   );
 }
+
